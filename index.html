@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>건양대×큐슈대 기념품 가챠</title>
+<title>가챠가챠 기념품 뽑기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=M+PLUS+Rounded+1c:wght@700;800&family=Noto+Sans+KR:wght@400;500;700&family=Press+Start+2P&display=swap">
@@ -237,6 +237,31 @@ a.btn{text-decoration:none;display:inline-flex}
   .rv.opened #capTop,.rv.opened #capBot{animation:none!important;opacity:0}
   .rv.opened .rv-tier,.rv.opened .rv-body{animation:none!important;opacity:1;transform:none}
 }
+
+/* settings (console) */
+.settings{display:grid;gap:24px}
+.set-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start}
+@media (max-width:900px){.set-grid{grid-template-columns:minmax(0,1fr)}}
+.form{display:grid;gap:12px}
+.field{display:grid;gap:4px;font-size:14px;color:var(--muted)}
+.field input,.field select,.cfg input[type=text],.cfg select{font-family:"Noto Sans KR",system-ui,sans-serif;font-size:15px;padding:8px 10px;border:0;background:var(--paper);color:var(--ink);width:100%;
+  box-shadow:0 -2px 0 0 var(--ink),0 2px 0 0 var(--ink),-2px 0 0 0 var(--ink),2px 0 0 0 var(--ink)}
+.field input:focus-visible,.field select:focus-visible,.cfg input:focus-visible,.cfg select:focus-visible{outline:3px dashed var(--lilac);outline-offset:4px}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+@media (max-width:520px){.pair{grid-template-columns:minmax(0,1fr)}}
+table.cfg{width:100%;border-collapse:collapse;font-size:15px;min-width:520px}
+.cfg th{font-weight:400;font-size:13px;color:var(--muted);text-align:left;padding:6px;border-bottom:3px solid var(--ink);white-space:nowrap}
+.cfg td{padding:6px;border-bottom:2px dashed rgba(42,27,77,.15);vertical-align:middle}
+.cfg input[type=color]{width:40px;height:34px;padding:0;border:0;background:none;cursor:pointer}
+.cfg .ord{display:inline-flex;gap:4px}
+.cfg .ord button,.cfg .x{width:30px;height:30px;font-size:14px;border:0;cursor:pointer;background:var(--paper2);color:var(--ink);font-family:"Noto Sans KR",system-ui,sans-serif;
+  box-shadow:0 -2px 0 0 var(--ink),0 2px 0 0 var(--ink),-2px 0 0 0 var(--ink),2px 0 0 0 var(--ink)}
+.cfg .ord button:disabled,.cfg .x:disabled{opacity:.3;cursor:not-allowed}
+.cfg td.c{text-align:center;white-space:nowrap}
+.note{margin:0;font-size:13px;color:var(--muted)}
+.ok{color:var(--t5);font-size:14px;min-height:20px}
+.row-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.l2off .l2col{display:none}
 </style>
 </head>
 <body>
@@ -246,18 +271,18 @@ a.btn{text-decoration:none;display:inline-flex}
 <div class="wrap" id="mainView">
   <header>
     <span class="badge">INSERT COIN <b>▶</b> PRESS START</span>
-    <h1 class="logo">가챠가챠 기념품 뽑기</h1>
-    <div class="logo-ja">ガチャガチャ 記念品くじ</div>
-    <div class="sub"><span>건양대 × 큐슈대</span><span class="ja">建陽大学 × 九州大学</span></div>
+    <h1 class="logo" id="hTitle"></h1>
+    <div class="logo-ja" id="hTitle2"></div>
+    <div class="sub" id="hOrg"></div>
   </header>
 
   <div class="grid">
-    <section class="stage" aria-label="가챠 · ガチャ">
+    <section class="stage" aria-label="가챠">
       <div class="machine-wrap" id="mwrap">
-        <canvas id="machine" width="100" height="140" role="img" aria-label="캡슐 뽑기 기계 · カプセルマシン"></canvas>
-        <div class="say pxf" id="say"><b>GACHA!</b><span>돌려 봐!</span><span class="ja">回してみて！</span></div>
+        <canvas id="machine" width="100" height="140" role="img" aria-label="캡슐 뽑기 기계"></canvas>
+        <div class="say pxf" id="say"></div>
       </div>
-      <div class="left" aria-live="polite"><span>남은 캡슐</span><b id="remain">161</b><span class="ja">残りカプセル</span></div>
+      <div class="left" aria-live="polite" id="leftLine"></div>
       <button class="cta" id="cta" type="button"></button>
       <div class="loading pxf" id="loading" hidden>
         <div class="titlebar"><span>LOADING...</span><span class="wb"><i>_</i><i>×</i></span></div>
@@ -268,13 +293,13 @@ a.btn{text-decoration:none;display:inline-flex}
 
     <aside class="side">
       <section class="panel pxf" id="prize" aria-label="경품 목록">
-        <div class="titlebar"><span class="tt">경품 목록 · <span class="ja">景品リスト</span></span><span class="wb"><i>_</i><i>□</i><i>×</i></span></div>
+        <div class="titlebar"><span class="tt" id="listTitle"></span><span class="wb"><i>_</i><i>□</i><i>×</i></span></div>
         <div class="win-body">
           <div class="tiers" id="tiers"></div>
         </div>
       </section>
       <a class="admin-bar pxf" href="#admin" id="admin">
-        <div class="titlebar"><span class="arr">▶</span><span class="tt">운영자 콘솔</span><span class="sub2">수량 수정 · 지급 기록 · 초기화 (PIN 필요)</span><span class="wb"><i>_</i><i>×</i></span></div>
+        <div class="titlebar"><span class="arr">▶</span><span class="tt">운영자 콘솔</span><span class="sub2">수량 · 경품 · 행사 설정 · 초기화 (PIN 필요)</span><span class="wb"><i>_</i><i>×</i></span></div>
       </a>
     </aside>
   </div>
@@ -287,7 +312,6 @@ a.btn{text-decoration:none;display:inline-flex}
       <div class="win-body">
         <div>PIN 4자리를 입력하세요</div>
         <div class="pin-dots" id="pinDots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-        <input type="password" id="pinInput" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="관리자 PIN 4자리" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none">
         <div class="pin-msg" id="pinMsg" aria-live="polite"></div>
         <div class="keypad" id="keypad">
           <button type="button">1</button><button type="button">2</button><button type="button">3</button>
@@ -325,80 +349,193 @@ a.btn{text-decoration:none;display:inline-flex}
         <section class="panel pxf" aria-label="초기화">
           <div class="titlebar"><span class="tt">초기화</span><span class="wb"><i>×</i></span></div>
           <div class="win-body danger-zone">
-            <p>지급 기록만 지우면 남은 수량은 그대로 둬요. 전체 초기화는 기록을 지우고 모든 경품을 총 수량으로 되돌려요.</p>
+            <p>지급 기록만 지우면 남은 수량은 그대로 둬요. 전체 초기화는 기록을 지우고 모든 경품을 총 수량으로 되돌려요. 경품·등급·제목 설정은 그대로 남아요.</p>
             <div class="confirm" id="clearBox"></div>
             <div class="confirm" id="resetBox"></div>
           </div>
         </section>
       </div>
     </div>
+
+    <div class="settings">
+      <div class="set-grid">
+        <section class="panel pxf" aria-label="행사 정보">
+          <div class="titlebar"><span class="tt">행사 정보</span><span class="wb"><i>_</i><i>×</i></span></div>
+          <div class="win-body form" id="infoForm"></div>
+        </section>
+        <section class="panel pxf" aria-label="백업과 PIN">
+          <div class="titlebar"><span class="tt">백업 · PIN</span><span class="wb"><i>_</i><i>×</i></span></div>
+          <div class="win-body form">
+            <p class="note">설정 파일에는 제목, 언어, 등급, 경품 목록이 들어 있어요. 다음 행사 때 불러오면 그대로 시작할 수 있어요.</p>
+            <div class="row-actions">
+              <button class="btn" type="button" data-c="export-cfg">설정 파일 내보내기</button>
+              <button class="btn" type="button" data-c="import">설정 파일 불러오기</button>
+              <button class="btn" type="button" data-c="export-csv">지급 기록 내보내기 (CSV)</button>
+              <input type="file" id="importFile" accept=".json,application/json" hidden>
+            </div>
+            <div class="confirm" id="importBox"></div>
+            <div class="ok" id="backupMsg" aria-live="polite"></div>
+            <div class="field"><label for="newPin">새 PIN (숫자 4자리)</label>
+              <div class="row-actions"><input type="password" id="newPin" inputmode="numeric" maxlength="4" autocomplete="off" style="max-width:140px">
+              <button class="btn" type="button" data-c="pin-save">PIN 바꾸기</button></div></div>
+            <div class="ok" id="pinSaveMsg" aria-live="polite"></div>
+          </div>
+        </section>
+      </div>
+      <section class="panel pxf" aria-label="등급 설정">
+        <div class="titlebar"><span class="tt">등급 설정</span><span class="wb"><i>_</i><i>□</i><i>×</i></span></div>
+        <div class="win-body form">
+          <p class="note">위에 있을수록 높은 등급이에요. 경품이 남아 있는 등급은 삭제할 수 없어요. 경품을 다른 등급으로 옮긴 뒤 삭제하세요.</p>
+          <div class="tbl-wrap"><table class="cfg" id="tierTable"></table></div>
+          <div class="row-actions"><button class="btn" type="button" data-c="tier-add">등급 추가</button></div>
+        </div>
+      </section>
+      <section class="panel pxf" aria-label="경품 설정">
+        <div class="titlebar"><span class="tt">경품 설정</span><span class="wb"><i>_</i><i>□</i><i>×</i></span></div>
+        <div class="win-body form">
+          <p class="note">경품 이름과 등급을 바꿀 수 있어요. 총 수량은 위의 '캡슐 수량 수정' 표에서 정해요. 새 경품은 총 수량 1개로 추가돼요.</p>
+          <div class="tbl-wrap"><table class="cfg" id="itemTable"></table></div>
+          <div class="row-actions"><button class="btn" type="button" data-c="item-add">경품 추가</button></div>
+        </div>
+      </section>
+    </div>
   </div>
 </div>
 
 <div class="overlay" id="overlay" hidden>
-  <div class="rv pxf closed" id="rv" role="dialog" aria-modal="true" aria-label="결과 · 結果">
+  <div class="rv pxf closed" id="rv" role="dialog" aria-modal="true" aria-label="결과">
     <div class="titlebar"><span>RESULT!</span><span class="wb"><i>_</i><i>□</i><i>×</i></span></div>
     <div class="win-body">
       <div class="fx" id="fx"></div>
-      <div class="cap" id="capBtn" role="button" tabindex="0" aria-label="캡슐 열기 · カプセルを開ける">
+      <div class="cap" id="capBtn" role="button" tabindex="0" aria-label="캡슐 열기">
         <canvas id="capBot" width="32" height="32"></canvas><canvas id="capTop" width="32" height="32"></canvas>
       </div>
-      <div class="tap"><span>캡슐을 눌러서 열어요</span><span class="ja">カプセルをタップして開けてね</span></div>
-      <div class="rv-tier"><span class="k" id="rvK">1등</span><span class="j" id="rvJ">1等</span></div>
+      <div class="tap" id="tapLine"></div>
+      <div class="rv-tier"><span class="k" id="rvK"></span><span class="j" id="rvJ"></span></div>
       <div class="rv-body">
-        <p><span>받고 싶은 경품을 하나 골라요</span><span class="ja">好きな景品を1つ選んでね</span></p>
+        <p id="pickLine"></p>
         <div class="choices" id="choices"></div>
-        <div><button class="btn" id="putBack" type="button">뽑기 취소 <span class="ja">キャンセル</span></button></div>
+        <div><button class="btn" id="putBack" type="button"></button></div>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-const TIERS = {
-  1:{ko:"1등",ja:"1等",c:"var(--t1)",hex:"#F2A900"}, 2:{ko:"2등",ja:"2等",c:"var(--t2)",hex:"#FF4FA3"},
-  3:{ko:"3등",ja:"3等",c:"var(--t3)",hex:"#1FB8DB"}, 4:{ko:"4등",ja:"4等",c:"var(--t4)",hex:"#9B6BFF"},
-  5:{ko:"5등",ja:"5等",c:"var(--t5)",hex:"#22B97C"}
+/* ================= configuration ================= */
+const DEFAULT_PIN = "11d1ff4edd53407199c92b00cbc3abe8c9c5d5bed4414ad07b55c896b0e7a713";
+const TIER_COLORS = ["#F2A900","#FF4FA3","#1FB8DB","#9B6BFF","#22B97C","#FF8A4F","#4F7CFF","#8A8F9E"];
+const DEFAULT_CONFIG = {
+  title:"가챠가챠 기념품 뽑기", title2:"ガチャガチャ 記念品くじ",
+  org:"건양대 × 큐슈대", org2:"建陽大学 × 九州大学",
+  lang2:"ja",
+  tiers:[
+    {id:"t1",name:"1등",name2:"1等",color:"#F2A900"},{id:"t2",name:"2등",name2:"2等",color:"#FF4FA3"},
+    {id:"t3",name:"3등",name2:"3等",color:"#1FB8DB"},{id:"t4",name:"4등",name2:"4等",color:"#9B6BFF"},
+    {id:"t5",name:"5등",name2:"5等",color:"#22B97C"}],
+  items:[
+    {id:"soju",  tier:"t1", name:"소주잔",          name2:"ソジュグラス",          qty:4},
+    {id:"soap",  tier:"t1", name:"휴대용 비누",     name2:"携帯用せっけん",        qty:4},
+    {id:"coast", tier:"t2", name:"컵받침대",        name2:"コースター",            qty:5},
+    {id:"wak",   tier:"t2", name:"왁뿌볼",          name2:"ワクプボール",          qty:6},
+    {id:"kakao", tier:"t2", name:"카카오 핸드크림", name2:"カカオ ハンドクリーム", qty:6},
+    {id:"janggu",tier:"t3", name:"장구 키링",       name2:"チャング キーホルダー", qty:10},
+    {id:"bok",   tier:"t3", name:"복주머니",        name2:"ポクチュモニ（福袋）",  qty:10},
+    {id:"mask",  tier:"t4", name:"마스크팩",        name2:"フェイスパック",        qty:20},
+    {id:"hl",    tier:"t4", name:"형광펜",          name2:"蛍光ペン",              qty:8},
+    {id:"squish",tier:"t5", name:"카피바라 말랑이", name2:"カピバラ スクイーズ",   qty:28},
+    {id:"pen",   tier:"t5", name:"카피바라 볼펜",   name2:"カピバラ ボールペン",   qty:36},
+    {id:"mark",  tier:"t5", name:"동양화 책갈피",   name2:"東洋画しおり",          qty:30}],
+  pinHash: DEFAULT_PIN
 };
-const ITEMS = [
-  {id:"soju",  tier:1, ko:"소주잔",          ja:"ソジュグラス",          qty:4},
-  {id:"soap",  tier:1, ko:"휴대용 비누",     ja:"携帯用せっけん",        qty:4},
-  {id:"coast", tier:2, ko:"컵받침대",        ja:"コースター",            qty:5},
-  {id:"wak",   tier:2, ko:"왁뿌볼",          ja:"ワクプボール",          qty:6},
-  {id:"janggu",tier:3, ko:"장구 키링",       ja:"チャング キーホルダー", qty:10},
-  {id:"bok",   tier:3, ko:"복주머니",        ja:"ポクチュモニ（福袋）",  qty:10},
-  {id:"mask",  tier:4, ko:"마스크팩",        ja:"フェイスパック",        qty:20},
-  {id:"hl",    tier:4, ko:"형광펜",          ja:"蛍光ペン",              qty:8},
-  {id:"squish",tier:5, ko:"카피바라 말랑이", ja:"カピバラ スクイーズ",   qty:28},
-  {id:"pen",   tier:5, ko:"카피바라 볼펜",   ja:"カピバラ ボールペン",   qty:36},
-  {id:"mark",  tier:5, ko:"동양화 책갈피",   ja:"東洋画しおり",          qty:30}
-];
+/* fixed screen text for the second language (Korean is always shown) */
+const LANGS = {
+  none:{label:"없음 (한국어만)"},
+  ja:{label:"일본어", tag:"ja", list:"景品リスト", remain:"残りカプセル", turn:"ガチャを回す", open:"カプセルを開ける", empty:"景品はすべてなくなりました",
+      go:"回してみて！", out:"カプセルが出たよ！", over:"ぜんぶ出たよ！", count:n=>`${n}個`, prob:"確率", tap:"カプセルをタップして開けてね",
+      pick:"好きな景品を1つ選んでね", cancel:"キャンセル", left:n=>`残り ${n}`, yay:(t,i)=>`${t} ${i} おめでとう！`},
+  en:{label:"영어", tag:"en", list:"Prize list", remain:"capsules left", turn:"Spin the gacha", open:"Open the capsule", empty:"All prizes are gone",
+      go:"Give it a spin!", out:"Your capsule is out!", over:"All gone!", count:n=>`${n} left`, prob:"Odds", tap:"Tap the capsule to open it",
+      pick:"Pick one prize", cancel:"Cancel", left:n=>`${n} left`, yay:(t,i)=>`${t}: ${i}. Congrats!`},
+  zh:{label:"중국어 (간체)", tag:"zh-CN", list:"奖品列表", remain:"剩余扭蛋", turn:"转动扭蛋", open:"打开扭蛋", empty:"奖品已全部送出",
+      go:"转一下吧！", out:"扭蛋出来了！", over:"全部抽完了！", count:n=>`${n}个`, prob:"概率", tap:"点击扭蛋打开",
+      pick:"请选择一个奖品", cancel:"取消", left:n=>`剩余 ${n}`, yay:(t,i)=>`${t} ${i} 恭喜！`}
+};
 const CAP_COLORS = ["#FF8FD0","#7FE3FF","#FFE27A","#C9A8FF","#8EF0C4","#FFB48A","#A8B8FF","#FF9C9C"];
-const totalQty = () => ITEMS.reduce((s,i)=>s+state.qty[i.id],0);
-const LS_KEY = "kyq-lucky-draw-v1";
-const byId = Object.fromEntries(ITEMS.map(i=>[i.id,i]));
-const fresh = (qty) => { const q = qty || Object.fromEntries(ITEMS.map(i=>[i.id,i.qty])); return {qty:{...q}, stock:{...q}, log:[]}; };
+const LS_KEY = "gacha-state-v2", LS_OLD = "kyq-lucky-draw-v1";
 const $ = id => document.getElementById(id);
-const esc = s => String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const reduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+const clone = o => JSON.parse(JSON.stringify(o));
+const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const str = (v,max) => (typeof v === "string" ? v : "").trim().slice(0,max);
+const int = (v,lo,hi,d) => Number.isFinite(+v) && v !== "" && v !== null ? Math.max(lo,Math.min(hi,Math.round(+v))) : d;
 
-function normalize(s){
-  const f = fresh();
-  for (const i of ITEMS){
-    const q = s?.qty?.[i.id]; if (Number.isFinite(q)) f.qty[i.id] = Math.max(0,Math.min(999,Math.round(q)));
-    const v = s?.stock?.[i.id]; f.stock[i.id] = Number.isFinite(v) ? Math.max(0,Math.min(f.qty[i.id],Math.round(v))) : f.qty[i.id];
-  }
-  f.log = Array.isArray(s?.log) ? s.log.filter(e=>e && byId[e.item]) : [];
-  return f;
+function normalizeConfig(c){
+  const d = DEFAULT_CONFIG; c = (c && typeof c === "object") ? c : {};
+  const out = {
+    title: "title" in c ? str(c.title,60) : d.title, title2: "title2" in c ? str(c.title2,60) : d.title2,
+    org: "org" in c ? str(c.org,60) : d.org, org2: "org2" in c ? str(c.org2,60) : d.org2,
+    lang2: LANGS[c.lang2] ? c.lang2 : d.lang2,
+    pinHash: /^[0-9a-f]{64}$/.test(c.pinHash||"") ? c.pinHash : DEFAULT_PIN
+  };
+  const seen = new Set();
+  out.tiers = (Array.isArray(c.tiers) ? c.tiers : d.tiers).slice(0,8).map((t,i)=>{
+    let id = str(t?.id,40) || uid("t"); if (seen.has(id)) id = uid("t"); seen.add(id);
+    return {id, name: str(t?.name,20) || `${i+1}등`, name2: str(t?.name2,20), color: /^#[0-9a-fA-F]{6}$/.test(t?.color||"") ? t.color : TIER_COLORS[i%TIER_COLORS.length]};
+  });
+  if (!out.tiers.length) out.tiers = [{id:"t1",name:"1등",name2:"",color:TIER_COLORS[0]}];
+  const tierIds = new Set(out.tiers.map(t=>t.id)), lastTier = out.tiers[out.tiers.length-1].id;
+  out.items = (Array.isArray(c.items) ? c.items : d.items).slice(0,80).map(it=>{
+    let id = str(it?.id,40) || uid("i"); if (seen.has(id)) id = uid("i"); seen.add(id);
+    return {id, tier: tierIds.has(it?.tier) ? it.tier : lastTier, name: str(it?.name,40) || "경품", name2: str(it?.name2,40), qty: int(it?.qty,0,999,1)};
+  });
+  return out;
 }
-let state = fresh();
-try { const s = JSON.parse(localStorage.getItem(LS_KEY)||"null"); if (s && s.stock) state = normalize(s); } catch(e){}
+function normalize(s){
+  s = (s && typeof s === "object") ? s : {};
+  let config;
+  if (s.config) config = normalizeConfig(s.config);
+  else {                                   // earlier version: fixed item list with qty overrides
+    config = normalizeConfig(clone(DEFAULT_CONFIG));
+    if (s.qty) config.items.forEach(i=>{ i.qty = int(s.qty[i.id],0,999,i.qty); });
+  }
+  const stock = {};
+  config.items.forEach(i=>{ stock[i.id] = int(s.stock?.[i.id],0,i.qty,i.qty); });
+  const byIdx = Object.fromEntries(config.items.map(i=>[i.id,i]));
+  const tierIdx = Object.fromEntries(config.tiers.map(t=>[t.id,t]));
+  const log = (Array.isArray(s.log) ? s.log : []).filter(e=>e && typeof e.item === "string").slice(0,5000).map(e=>{
+    const it = byIdx[e.item];
+    let tier = typeof e.tier === "string" ? e.tier : it?.tier;
+    if (!tierIdx[tier] && Number.isFinite(+e.tier)) tier = "t"+e.tier;          // nothing stored the tier before; keep safe
+    return {item:e.item, name: str(e.name,40) || it?.name || "삭제된 경품", tier: tier || "", tierName: str(e.tierName,20) || tierIdx[tier||it?.tier]?.name || "", at: e.at};
+  });
+  return {config, stock, log};
+}
+const freshState = cfg => { const config = normalizeConfig(clone(cfg || DEFAULT_CONFIG)); return {config, stock:Object.fromEntries(config.items.map(i=>[i.id,i.qty])), log:[]}; };
+
+let state = freshState();
+try {
+  const raw = localStorage.getItem(LS_KEY) || localStorage.getItem(LS_OLD);
+  if (raw) state = normalize(JSON.parse(raw));
+} catch(e){}
+
+const C = () => state.config;
+const L2 = () => C().lang2 !== "none" ? LANGS[C().lang2] : null;
+const tierOf = id => C().tiers.find(t=>t.id===id);
+const itemOf = id => C().items.find(i=>i.id===id);
+const itemsIn = tid => C().items.filter(i=>i.tier===tid);
+const totalQty = () => C().items.reduce((s,i)=>s+i.qty,0);
+const remaining = () => C().items.reduce((s,i)=>s+(state.stock[i.id]||0),0);
+const tierLeft = tid => itemsIn(tid).reduce((s,i)=>s+(state.stock[i.id]||0),0);
+/* second-language span (same size and colour as the Korean) */
+const j = txt => { const L = L2(); return L && txt ? `<span class="ja" lang="${L.tag}">${esc(txt)}</span>` : ""; };
+const jt = key => { const L = L2(); return L ? L[key] : ""; };
+
 let phase = "idle", pending = null, capColor = CAP_COLORS[0];
 let ref = null, saving = Promise.resolve();
-const remaining = () => ITEMS.reduce((s,i)=>s+state.stock[i.id],0);
-const tierLeft = t => ITEMS.filter(i=>i.tier==t).reduce((s,i)=>s+state.stock[i.id],0);
 
-/* ---------- pixel sprites (a = colour, A = white, o = ink) ---------- */
+/* ================= pixel sprites (a = colour, A = white, o = ink) ================= */
 const SPRITES = {
   plus:  ["..a..","..a..","aaAaa","..a..","..a.."],
   dots:  ["..a..",".....","a.A.a",".....","..a.."],
@@ -410,7 +547,6 @@ const SPRITES = {
   burst: ["...a...","a..a..a",".a.a.a.","aaaAaaa",".a.a.a.","a..a..a","...a..."],
   sq:    ["aa","aa"],
   bolt:  ["...oooo","..oaaao",".oaaao.","oaaaooo","ooaaaao","..oaao.",".oaao..","oaao...","oao....","oo....."],
-  cursor:["o.......","oo......","oAo.....","oAAo....","oAAAo...","oAAAAo..","oAAAAAo.","oAAAAAAo","oAAAoooo","oAoAo...","oo.oAo..","o..oAo..","....oo.."],
   bubble:[".ooooooooo.","oAAAAAAAAAo","oAAAAAAAAAo","oAaAAaAAaAo","oAAAAAAAAAo",".ooAoooooo.","..oAo......","..oo......."],
   smile: ["..ooooo..",".oaaaaao.","oaaaaaaao","oaoaaaoao","oaaaaaaao","oaoaaaoao","oaaoooaao",".oaaaaao.","..ooooo.."],
   hbub:  [".ooooooooo.","oAAAAAAAAAo","oAAaaAaaAAo","oAAaaaaaAAo","oAAAaaaAAAo","oAAAAaAAAAo",".ooooooAoo.","......oAo..","......oo..."]
@@ -439,10 +575,8 @@ function sprite(name,color,scale,css,still){
   const box = $("deco");
   const twinkle = ["plus","dots","ring","big","long","burst","sq","plus","big","dots"];
   for (let i=0;i<30;i++){
-    const n = twinkle[i % twinkle.length];
-    box.appendChild(sprite(n, PASTELS[i % PASTELS.length], 3 + (i*7)%4, `left:${(Math.random()*96).toFixed(1)}%;top:${(Math.random()*96).toFixed(1)}%;animation-delay:${(Math.random()*1.6).toFixed(2)}s`));
+    box.appendChild(sprite(twinkle[i % twinkle.length], PASTELS[i % PASTELS.length], 3 + (i*7)%4, `left:${(Math.random()*96).toFixed(1)}%;top:${(Math.random()*96).toFixed(1)}%;animation-delay:${(Math.random()*1.6).toFixed(2)}s`));
   }
-  // a few fixed icons in the margins (only visible on wide screens' edges, behind content)
   [["heart","#FF6FBF",5,"left:2%;top:18%"],["bolt","#FFE27A",5,"right:2.5%;top:12%"],["smile","#FFE27A",5,"left:3%;top:62%"],
    ["hbub","#FF6FBF",5,"right:3%;top:56%"],["star","#C9A8FF",5,"left:5%;top:88%"],
    ["bubble","#B98CFF",5,"left:1.5%;top:40%"],["heart","#B98CFF",4,"right:1.5%;top:34%"]]
@@ -455,7 +589,7 @@ function sprite(name,color,scale,css,still){
   $("segs").innerHTML = "<i></i>".repeat(10);
 })();
 
-/* ---------- pixel machine on canvas ---------- */
+/* ================= pixel machine on canvas ================= */
 const W = 100, H = 140, cv = $("machine"), ctx = cv.getContext("2d");
 const img = ctx.createImageData(W,H), buf = new Uint32Array(img.data.buffer);
 const col = hex => { const n = parseInt(hex.slice(1),16); return ((255<<24) | ((n&255)<<16) | (((n>>8)&255)<<8) | (n>>16)) >>> 0; };
@@ -478,9 +612,8 @@ function trap(y0,y1,l0,r0,l1,r1,fill){
   }
 }
 function mix(hex,w){ const n=parseInt(hex.slice(1),16); const f=v=>Math.round(v+(255-v)*w); return "#"+[n>>16,(n>>8)&255,n&255].map(f).map(v=>v.toString(16).padStart(2,"0")).join(""); }
-/* capsule: clear top, coloured bottom with a lighter band, ink outline; part = "all" | "top" | "bot" */
 function capsule(put,cx,cy,r,hex,ang,part="all",clip){
-  const C = col(hex), L = col(mix(hex,.45)), ca = Math.cos(ang), sa = Math.sin(ang);
+  const Cc = col(hex), Lc = col(mix(hex,.45)), ca = Math.cos(ang), sa = Math.sin(ang);
   const inside = (dx,dy) => dx*dx+dy*dy <= r*r + r*.6;
   for (let dy=-r-1;dy<=r+1;dy++) for (let dx=-r-1;dx<=r+1;dx++){
     if (!inside(dx,dy)) continue;
@@ -491,7 +624,7 @@ function capsule(put,cx,cy,r,hex,ang,part="all",clip){
     const edge = !inside(dx+1,dy)||!inside(dx-1,dy)||!inside(dx,dy+1)||!inside(dx,dy-1);
     let c;
     if (edge || Math.abs(s) <= 0.5) c = P.ink;
-    else if (s > 0) c = s <= Math.max(1.5, r*.32) ? L : C;
+    else if (s > 0) c = s <= Math.max(1.5, r*.32) ? Lc : Cc;
     else c = (dx*ca+dy*sa > r*.15 && s < -r*.45 && s > -r*.75) ? P.shine : P.white;
     put(x,y,c);
   }
@@ -519,8 +652,8 @@ function drawMachine(){
   disc(DOME.cx,DOME.cy,DOME.r,P.glass,null);
   const left = remaining();
   const n = left===0 ? 0 : Math.max(1, Math.round(SLOTS.length*left/Math.max(1,totalQty())));
-  const t = anim.t || 0, amp = anim.shake || 0;   // smooth sway, eased in and out
-  for (let i=n-1;i>=0;i--){
+  const t = anim.t || 0, amp = anim.shake || 0;
+  for (let i=Math.min(n,SLOTS.length)-1;i>=0;i--){
     const ph = i*1.7;
     const ox = Math.round(Math.sin(t*12+ph)*1.6*amp), oy = Math.round(Math.cos(t*9+ph)*1.2*amp);
     capsule(px, SLOTS[i][0]+ox, SLOTS[i][1]+oy, PR, SLOT_COL[i], SLOT_ANG[i]+Math.sin(t*7+ph)*.35*amp, "all", domeClip);
@@ -528,7 +661,6 @@ function drawMachine(){
   for (let d=200; d<=262; d+=4){ const a=d*Math.PI/180; px(Math.round(DOME.cx+Math.cos(a)*(DOME.r-5)), Math.round(DOME.cy+Math.sin(a)*(DOME.r-5)), P.white); }
   for (let d=300; d<=318; d+=6){ const a=d*Math.PI/180; px(Math.round(DOME.cx+Math.cos(a)*(DOME.r-5)), Math.round(DOME.cy+Math.sin(a)*(DOME.r-5)), P.white); }
   disc(DOME.cx,DOME.cy,DOME.r,null,P.ink);
-  // lid resting on top of the round globe
   rect(46,0,54,4,P.pinkL);
   trap(4,11,39,61,33,67,P.pink);
   for (let x=36;x<=64;x+=3) px(x,9,P.pinkL);
@@ -558,52 +690,66 @@ function drawRevealCap(hex){
   }
 }
 
-/* ---------- storage ---------- */
+/* ================= storage ================= */
 function setSync(t){ const c = $("conSync"); if (c) c.textContent = t; }
 function save(){
   try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e){}
   if (!ref){ setSync("이 브라우저에만 저장됨"); return; }
-  const snap = JSON.parse(JSON.stringify(state));
+  const snap = clone(state);
   setSync("저장 중…");
   saving = saving.then(()=>ref.set(snap)).then(()=>setSync("저장됨 · 다른 기기와 동기화")).catch(()=>setSync("저장 실패 · 이 브라우저에만 저장됨"));
 }
 
-/* ---------- render ---------- */
+/* ================= gacha screen ================= */
+function renderHeader(){
+  const c = C(), L = L2();
+  $("hTitle").textContent = c.title || "가챠 뽑기";
+  $("hTitle2").textContent = L ? c.title2 : ""; $("hTitle2").hidden = !(L && c.title2);
+  $("hOrg").innerHTML = (c.org ? `<span>${esc(c.org)}</span>` : "") + j(c.org2);
+  $("hOrg").hidden = !(c.org || (L && c.org2));
+  document.title = c.title || "가챠 뽑기";
+  $("listTitle").innerHTML = `경품 목록${L ? " · " + j(L.list) : ""}`;
+  $("tapLine").innerHTML = `<span>캡슐을 눌러서 열어요</span>${j(jt("tap"))}`;
+  $("pickLine").innerHTML = `<span>받고 싶은 경품을 하나 골라요</span>${j(jt("pick"))}`;
+  $("putBack").innerHTML = `뽑기 취소 ${j(jt("cancel"))}`;
+}
 function setCta(){
   const b = $("cta"), left = remaining();
   b.classList.toggle("open", phase==="dropped");
   cv.classList.toggle("ready", phase==="dropped");
-  $("say").innerHTML = phase==="dropped" ? `<b>OPEN!</b><span>캡슐이 나왔어!</span><span class="ja">カプセルが出たよ！</span>`
-                     : left===0 ? `<b>GAME OVER</b><span>모두 나갔어!</span><span class="ja">ぜんぶ出たよ！</span>`
-                     : `<b>GACHA!</b><span>돌려 봐!</span><span class="ja">回してみて！</span>`;
-  if (phase==="dropped"){ b.innerHTML = `<span>캡슐 열기</span><span class="ja">カプセルを開ける</span>`; b.disabled = false; }
-  else if (left===0){ b.innerHTML = `<span>경품이 모두 나갔어요</span><span class="ja">景品はすべてなくなりました</span>`; b.disabled = true; }
-  else { b.innerHTML = `<span>가챠 돌리기</span><span class="ja">ガチャを回す</span>`; b.disabled = phase!=="idle"; }
+  $("say").innerHTML = phase==="dropped" ? `<b>OPEN!</b><span>캡슐이 나왔어!</span>${j(jt("out"))}`
+                     : left===0 ? `<b>GAME OVER</b><span>모두 나갔어!</span>${j(jt("over"))}`
+                     : `<b>GACHA!</b><span>돌려 봐!</span>${j(jt("go"))}`;
+  if (phase==="dropped"){ b.innerHTML = `<span>캡슐 열기</span>${j(jt("open"))}`; b.disabled = false; }
+  else if (left===0){ b.innerHTML = `<span>경품이 모두 나갔어요</span>${j(jt("empty"))}`; b.disabled = true; }
+  else { b.innerHTML = `<span>가챠 돌리기</span>${j(jt("turn"))}`; b.disabled = phase!=="idle"; }
 }
 function render(){
-  const left = remaining();
-  $("remain").textContent = left;
+  const left = remaining(), L = L2();
+  renderHeader();
+  $("leftLine").innerHTML = `<span>남은 캡슐</span><b>${left}</b>${j(jt("remain"))}`;
   drawMachine(); setCta();
-  $("tiers").innerHTML = Object.keys(TIERS).map(t=>{
-    const tl = tierLeft(t), p = left ? (tl/left*100).toFixed(1) : "0.0";
-    const items = ITEMS.filter(i=>i.tier==t).map(i=>{
+  $("tiers").innerHTML = C().tiers.map(t=>{
+    const its = itemsIn(t.id); if (!its.length) return "";
+    const tl = tierLeft(t.id), p = left ? (tl/left*100).toFixed(1) : "0.0";
+    const items = its.map(i=>{
       const q = state.stock[i.id];
-      return `<li><span class="nm">${esc(i.ko)}<span class="ja">${esc(i.ja)}</span></span><span class="q"><b>${q}</b>/${state.qty[i.id]}</span><span class="bar"><i style="width:${state.qty[i.id] ? q/state.qty[i.id]*100 : 0}%"></i></span></li>`;
+      return `<li><span class="nm">${esc(i.name)}${L && i.name2 ? `<span class="ja" lang="${L.tag}">${esc(i.name2)}</span>` : ""}</span><span class="q"><b>${q}</b>/${i.qty}</span><span class="bar"><i style="width:${i.qty ? q/i.qty*100 : 0}%"></i></span></li>`;
     }).join("");
-    return `<div class="tier${tl?"":" empty"}" style="--tc:${TIERS[t].c}">
-      <div class="tier-head"><span class="chip">${TIERS[t].ko}<span class="ja">${TIERS[t].ja}</span></span>
-      <span class="n">${tl}개 · <span class="ja">${tl}個</span></span>
-      <span class="p">확률 · <span class="ja">確率</span> <b>${p}%</b></span></div><ul class="items">${items}</ul></div>`;
-  }).join("");
+    return `<div class="tier${tl?"":" empty"}" style="--tc:${t.color}">
+      <div class="tier-head"><span class="chip">${esc(t.name)}${j(t.name2)}</span>
+      <span class="n">${tl}개${L ? " · " + j(L.count(tl)) : ""}</span>
+      <span class="p">확률${L ? " · " + j(L.prob) : ""} <b>${p}%</b></span></div><ul class="items">${items}</ul></div>`;
+  }).join("") || `<p class="note">경품이 없어요. 운영자 콘솔에서 경품을 추가하세요.</p>`;
   if (!$("consoleView").hidden && unlocked) renderConsole();
 }
-function toast(ko,ja){ const t=$("toast"); t.innerHTML = `<span>${esc(ko)}</span><span class="ja">${esc(ja)}</span>`; t.hidden=false; }
+function toast(ko,l2){ const t=$("toast"); t.innerHTML = `<span>${esc(ko)}</span>${j(l2)}`; t.hidden=false; }
 
-/* ---------- draw flow ---------- */
+/* ================= draw flow ================= */
 function pickTier(){
   let r = Math.random()*remaining();
-  for (const t of Object.keys(TIERS)){ r -= tierLeft(t); if (r < 0) return t; }
-  return Object.keys(TIERS).reverse().find(t=>tierLeft(t)>0);
+  for (const t of C().tiers){ r -= tierLeft(t.id); if (r < 0) return t.id; }
+  return [...C().tiers].reverse().find(t=>tierLeft(t.id)>0)?.id;
 }
 let bobTimer = null;
 function setLoading(k){
@@ -644,18 +790,20 @@ function turn(){
 }
 function openReveal(){
   if (phase!=="dropped") return;
+  const t = tierOf(pending);
+  if (!t || tierLeft(pending)===0){ closeReveal(); return; }      // settings changed meanwhile
   phase = "reveal"; clearInterval(bobTimer);
-  const t = pending, rv = $("rv");
-  rv.style.setProperty("--tc", TIERS[t].c);
-  $("rvK").textContent = TIERS[t].ko; $("rvJ").textContent = TIERS[t].ja;
+  const rv = $("rv"), L = L2();
+  rv.style.setProperty("--tc", t.color);
+  $("rvK").textContent = t.name; $("rvJ").textContent = L ? t.name2 : ""; $("rvJ").hidden = !(L && t.name2);
   drawRevealCap(capColor);
   const fx = $("fx"); fx.innerHTML = "";
   const spots = [[4,4],[86,4],[2,34],[90,30],[8,62],[86,58],[28,2],[66,0],[18,20],[76,18],[48,4]];
   const names = ["big","plus","heart","star","long","burst","dots","smile","ring","bolt","big"];
-  spots.forEach(([l,tp],i)=>fx.appendChild(sprite(names[i%names.length], i%3===0 ? TIERS[t].hex : names[i]==="smile"||names[i]==="bolt" ? "#FFE27A" : PASTELS[i%PASTELS.length], 4+(i%3),
+  spots.forEach(([l,tp],i)=>fx.appendChild(sprite(names[i%names.length], i%3===0 ? t.color : names[i]==="smile"||names[i]==="bolt" ? "#FFE27A" : PASTELS[i%PASTELS.length], 4+(i%3),
     `left:${l}%;top:${tp}%;animation-delay:${(.15+i*.05).toFixed(2)}s,${(1+i*.07).toFixed(2)}s`)));
-  const avail = ITEMS.filter(i=>i.tier==t && state.stock[i.id]>0);
-  $("choices").innerHTML = avail.map(i=>`<button type="button" class="choice" data-id="${i.id}"><b>${esc(i.ko)}</b><span class="ja">${esc(i.ja)}</span><span class="q">남은 수량 ${state.stock[i.id]} · <span class="ja">残り ${state.stock[i.id]}</span></span></button>`).join("");
+  const avail = itemsIn(t.id).filter(i=>state.stock[i.id]>0);
+  $("choices").innerHTML = avail.map(i=>`<button type="button" class="choice" data-id="${esc(i.id)}"><b>${esc(i.name)}</b>${L && i.name2 ? `<span class="ja" lang="${L.tag}">${esc(i.name2)}</span>` : ""}<span class="q">남은 수량 ${state.stock[i.id]}${L ? " · " + j(L.left(state.stock[i.id])) : ""}</span></button>`).join("");
   rv.className = "rv pxf closed";
   $("overlay").hidden = false;
   $("capBtn").focus();
@@ -666,19 +814,18 @@ function crack(){
   setTimeout(()=>{ const c = $("choices").querySelector(".choice"); if (c) c.focus(); }, reduce()?0:800);
 }
 function closeReveal(){
+  clearInterval(bobTimer);
   $("overlay").hidden = true; $("rv").className = "rv pxf closed";
   anim.out = null; pending = null; phase = "idle"; render(); $("cta").focus();
 }
 function give(id){
-  const it = byId[id];
-  if (phase!=="reveal" || !it || it.tier != pending || state.stock[id] <= 0) return;
+  const it = itemOf(id), t = it && tierOf(it.tier), L = L2();
+  if (phase!=="reveal" || !it || it.tier !== pending || !(state.stock[id] > 0)) return;
   state.stock[id]--;
-  state.log.unshift({item:id, at:new Date().toISOString()});
+  state.log.unshift({item:id, name:it.name, tier:t.id, tierName:t.name, at:new Date().toISOString()});
   closeReveal(); save();
-  toast(`${TIERS[it.tier].ko} ${it.ko} 축하해요!`, `${TIERS[it.tier].ja} ${it.ja} おめでとう！`);
+  toast(`${t.name} ${it.name} 축하해요!`, L ? L.yay(t.name2 || t.name, it.name2 || it.name) : "");
 }
-
-
 $("cta").addEventListener("click", () => phase==="dropped" ? openReveal() : turn());
 cv.addEventListener("click", openReveal);
 $("capBtn").addEventListener("click", crack);
@@ -686,49 +833,90 @@ $("capBtn").addEventListener("keydown", e => { if (e.key==="Enter"||e.key===" ")
 $("choices").addEventListener("click", e => { const b = e.target.closest(".choice"); if (b) give(b.dataset.id); });
 $("putBack").addEventListener("click", closeReveal);
 
-/* ---------- admin console (#admin) ---------- */
-let conConfirm = null;
+/* ================= admin console (#admin) ================= */
+let conConfirm = null, importDraft = null;
 const given = id => state.log.filter(e=>e.item===id).length;
+const editingNow = () => { const a = document.activeElement; return !!(a && a.closest && a.closest("#conBody input:not([type=file]):not(#newPin), #conBody select")); };
 function renderConsole(){
-  const left = remaining(), tq = totalQty();
+  const left = remaining(), tq = totalQty(), c = C();
+  const top = c.tiers.slice(0,3), topLeft = top.reduce((s,t)=>s+tierLeft(t.id),0);
   $("tiles").innerHTML = [
     ["남은 캡슐", `${left}`, `총 ${tq}개 중`, "pink"],
     ["지급 기록", `${state.log.length}`, "가챠로 나간 경품", ""],
-    ["1~3등 남음", `${tierLeft(1)+tierLeft(2)+tierLeft(3)}`, left ? `확률 ${((tierLeft(1)+tierLeft(2)+tierLeft(3))/left*100).toFixed(1)}%` : "확률 0%", ""],
+    [`상위 등급 남음`, `${topLeft}`, `${top.map(t=>t.name).join("·")} · 확률 ${left ? (topLeft/left*100).toFixed(1) : "0.0"}%`, ""],
     ["저장 상태", ref ? "SYNC" : "LOCAL", ref ? "다른 기기와 동기화 중" : "이 브라우저에만 저장", ""]
-  ].map(([l,v,sub,c])=>`<div class="tile pxf"><span class="l">${l}</span><span class="v ${c}">${v}</span><span class="s">${sub}</span></div>`).join("");
+  ].map(([l,v,sub,cl])=>`<div class="tile pxf"><span class="l">${esc(l)}</span><span class="v ${cl}">${esc(v)}</span><span class="s">${esc(sub)}</span></div>`).join("");
 
-  const editing = document.activeElement && document.activeElement.closest && document.activeElement.closest("#stockBody input");
-  if (!editing){
-    $("stockBody").innerHTML = Object.keys(TIERS).map(t=>{
-      const tl = tierLeft(t), tt = ITEMS.filter(i=>i.tier==t).reduce((s,i)=>s+state.qty[i.id],0);
-      const head = `<tr class="tier-row" style="--tc:${TIERS[t].c}"><td><span class="chip">${TIERS[t].ko}</span></td>
-        <td class="num sum">${tt}</td><td class="num sum">${tl}</td><td class="num sum">${ITEMS.filter(i=>i.tier==t).reduce((s,i)=>s+given(i.id),0)}</td>
+  if (!editingNow()){
+    /* stock table */
+    $("stockBody").innerHTML = c.tiers.map(t=>{
+      const its = itemsIn(t.id), tl = tierLeft(t.id), tt = its.reduce((s,i)=>s+i.qty,0);
+      const head = `<tr class="tier-row" style="--tc:${t.color}"><td><span class="chip">${esc(t.name)}</span></td>
+        <td class="num sum">${tt}</td><td class="num sum">${tl}</td><td class="num sum">${its.reduce((s,i)=>s+given(i.id),0)}</td>
         <td class="num sum">${left ? (tl/left*100).toFixed(1) : "0.0"}%</td></tr>`;
-      const rows = ITEMS.filter(i=>i.tier==t).map(i=>{
-        const q = state.stock[i.id], tot = state.qty[i.id], g = given(i.id);
-        const diff = (tot - q) - g; const warn = diff ? `<span class="warn">직접 수정됨 (기록보다 ${Math.abs(diff)}개 ${diff>0?"적게":"많이"} 남음)</span>` : "";
-        return `<tr><td>${esc(i.ko)}${warn}</td>
-          <td class="num"><input type="number" inputmode="numeric" min="0" max="999" id="qty-${i.id}" data-k="qty" data-id="${i.id}" value="${tot}" aria-label="${esc(i.ko)} 총 수량"></td>
+      const rows = its.map(i=>{
+        const q = state.stock[i.id], tot = i.qty, g = given(i.id), diff = (tot - q) - g;
+        const warn = diff ? `<span class="warn">직접 수정됨 (기록보다 ${Math.abs(diff)}개 ${diff>0?"적게":"많이"} 남음)</span>` : "";
+        return `<tr><td>${esc(i.name)}${warn}</td>
+          <td class="num"><input type="number" inputmode="numeric" min="0" max="999" id="qty-${esc(i.id)}" data-k="qty" data-id="${esc(i.id)}" value="${tot}" aria-label="${esc(i.name)} 총 수량"></td>
           <td class="num"><span class="stepper">
-            <button type="button" data-step="-1" data-id="${i.id}" ${q<=0?"disabled":""} aria-label="${esc(i.ko)} 남은 수량 1 줄이기">−</button>
-            <input type="number" inputmode="numeric" min="0" max="${tot}" id="stock-${i.id}" data-k="stock" data-id="${i.id}" value="${q}" aria-label="${esc(i.ko)} 남은 수량">
-            <button type="button" data-step="1" data-id="${i.id}" ${q>=tot?"disabled":""} aria-label="${esc(i.ko)} 남은 수량 1 늘리기">+</button></span></td>
+            <button type="button" data-step="-1" data-id="${esc(i.id)}" ${q<=0?"disabled":""} aria-label="${esc(i.name)} 남은 수량 1 줄이기">−</button>
+            <input type="number" inputmode="numeric" min="0" max="${tot}" id="stock-${esc(i.id)}" data-k="stock" data-id="${esc(i.id)}" value="${q}" aria-label="${esc(i.name)} 남은 수량">
+            <button type="button" data-step="1" data-id="${esc(i.id)}" ${q>=tot?"disabled":""} aria-label="${esc(i.name)} 남은 수량 1 늘리기">+</button></span></td>
           <td class="num">${g}</td>
           <td class="num">${left ? (q/left*100).toFixed(1) : "0.0"}%</td></tr>`;
       }).join("");
       return head + rows;
     }).join("");
+
+    /* event info */
+    const L = c.lang2 !== "none";
+    $("infoForm").innerHTML = `
+      <div class="field"><label for="cfg-lang2">두 번째 언어</label>
+        <select id="cfg-lang2" data-f="cfg" data-key="lang2">${Object.entries(LANGS).map(([k,v])=>`<option value="${k}" ${c.lang2===k?"selected":""}>${v.label}</option>`).join("")}</select></div>
+      <div class="pair"><div class="field"><label for="cfg-title">제목 (한국어)</label><input type="text" id="cfg-title" data-f="cfg" data-key="title" maxlength="60" value="${esc(c.title)}"></div>
+        <div class="field" ${L?"":"hidden"}><label for="cfg-title2">제목 (${esc(LANGS[c.lang2].label)})</label><input type="text" id="cfg-title2" data-f="cfg" data-key="title2" maxlength="60" value="${esc(c.title2)}"></div></div>
+      <div class="pair"><div class="field"><label for="cfg-org">기관명 · 부제 (한국어)</label><input type="text" id="cfg-org" data-f="cfg" data-key="org" maxlength="60" value="${esc(c.org)}"></div>
+        <div class="field" ${L?"":"hidden"}><label for="cfg-org2">기관명 · 부제 (${esc(LANGS[c.lang2].label)})</label><input type="text" id="cfg-org2" data-f="cfg" data-key="org2" maxlength="60" value="${esc(c.org2)}"></div></div>
+      <p class="note">버튼·안내 문구의 두 번째 언어는 자동으로 바뀌어요. 제목·등급·경품 이름의 두 번째 언어는 직접 입력하세요.</p>`;
+
+    /* tiers */
+    const l2h = L ? `<th class="l2col">이름 (${esc(LANGS[c.lang2].label)})</th>` : "";
+    $("tierTable").innerHTML = `<thead><tr><th>순서</th><th>색</th><th>이름 (한국어)</th>${l2h}<th>경품 수</th><th></th></tr></thead><tbody>` +
+      c.tiers.map((t,idx)=>{
+        const n = itemsIn(t.id).length;
+        const del = conConfirm===`tdel:${t.id}`
+          ? `<span class="confirm"><button class="btn danger" type="button" data-c="tier-del-yes" data-id="${esc(t.id)}">삭제</button><button class="btn" type="button" data-c="no">취소</button></span>`
+          : `<button class="x" type="button" data-c="tier-del" data-id="${esc(t.id)}" ${n||c.tiers.length<=1?"disabled":""} aria-label="${esc(t.name)} 삭제" title="${n?"경품이 있는 등급은 삭제할 수 없어요":"삭제"}">×</button>`;
+        return `<tr><td class="c"><span class="ord"><button type="button" data-c="tier-up" data-id="${esc(t.id)}" ${idx===0?"disabled":""} aria-label="${esc(t.name)} 위로">↑</button><button type="button" data-c="tier-down" data-id="${esc(t.id)}" ${idx===c.tiers.length-1?"disabled":""} aria-label="${esc(t.name)} 아래로">↓</button></span></td>
+          <td class="c"><input type="color" data-f="tier" data-key="color" data-id="${esc(t.id)}" value="${t.color}" aria-label="${esc(t.name)} 색"></td>
+          <td><input type="text" data-f="tier" data-key="name" data-id="${esc(t.id)}" maxlength="20" value="${esc(t.name)}" aria-label="등급 이름"></td>
+          ${L ? `<td class="l2col"><input type="text" data-f="tier" data-key="name2" data-id="${esc(t.id)}" maxlength="20" value="${esc(t.name2)}" aria-label="등급 이름 두 번째 언어"></td>` : ""}
+          <td class="c">${n}</td><td class="c">${del}</td></tr>`;
+      }).join("") + `</tbody>`;
+
+    /* items */
+    const l2i = L ? `<th>이름 (${esc(LANGS[c.lang2].label)})</th>` : "";
+    $("itemTable").innerHTML = `<thead><tr><th>이름 (한국어)</th>${l2i}<th>등급</th><th>총 수량</th><th></th></tr></thead><tbody>` +
+      (c.items.length ? c.items.map(i=>{
+        const del = conConfirm===`idel:${i.id}`
+          ? `<span class="confirm"><button class="btn danger" type="button" data-c="item-del-yes" data-id="${esc(i.id)}">삭제</button><button class="btn" type="button" data-c="no">취소</button></span>`
+          : `<button class="x" type="button" data-c="item-del" data-id="${esc(i.id)}" aria-label="${esc(i.name)} 삭제">×</button>`;
+        return `<tr><td><input type="text" data-f="item" data-key="name" data-id="${esc(i.id)}" maxlength="40" value="${esc(i.name)}" aria-label="경품 이름"></td>
+          ${L ? `<td><input type="text" data-f="item" data-key="name2" data-id="${esc(i.id)}" maxlength="40" value="${esc(i.name2)}" aria-label="경품 이름 두 번째 언어"></td>` : ""}
+          <td><select data-f="item" data-key="tier" data-id="${esc(i.id)}" aria-label="${esc(i.name)} 등급">${c.tiers.map(t=>`<option value="${esc(t.id)}" ${t.id===i.tier?"selected":""}>${esc(t.name)}</option>`).join("")}</select></td>
+          <td class="c">${i.qty}</td><td class="c">${del}</td></tr>`;
+      }).join("") : `<tr><td colspan="5" class="note">경품이 없어요. '경품 추가'를 누르세요.</td></tr>`) + `</tbody>`;
   }
 
   $("conLogCount").textContent = state.log.length ? `(${state.log.length})` : "";
   $("conLog").innerHTML = state.log.length ? state.log.map((e,idx)=>{
-    const it = byId[e.item], d = new Date(e.at);
+    const t = tierOf(e.tier), d = new Date(e.at);
     const when = isNaN(d) ? "--" : `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
     const btn = conConfirm===`del:${idx}`
       ? `<span class="confirm"><button class="btn danger" type="button" data-c="del-yes" data-i="${idx}">취소 확인</button><button class="btn" type="button" data-c="no">아니요</button></span>`
       : `<button class="btn" type="button" data-c="del" data-i="${idx}">지급 취소</button>`;
-    return `<li><span class="t">${when}</span><span class="chip" style="--tc:${TIERS[it.tier].c}">${TIERS[it.tier].ko}</span><span>${esc(it.ko)}</span>${btn}</li>`;
+    return `<li><span class="t">${when}</span><span class="chip" style="--tc:${t ? t.color : "#8A8F9E"}">${esc(t ? t.name : e.tierName || "-")}</span><span>${esc(e.name)}</span>${btn}</li>`;
   }).join("") : `<li style="display:block;color:var(--muted)">아직 지급 기록이 없어요.</li>`;
 
   $("clearBox").innerHTML = conConfirm==="clear"
@@ -737,36 +925,125 @@ function renderConsole(){
   $("resetBox").innerHTML = conConfirm==="reset"
     ? `<span>기록을 지우고 모든 경품을 총 수량(${tq}개)으로 되돌릴까요?</span><button class="btn danger" type="button" data-c="reset-yes">예</button><button class="btn" type="button" data-c="no">아니요</button>`
     : `<button class="btn danger" type="button" data-c="reset">전체 초기화</button>`;
+  $("importBox").innerHTML = importDraft
+    ? `<span>불러온 설정(경품 ${importDraft.items.length}개, 총 ${importDraft.items.reduce((s,i)=>s+i.qty,0)}개)으로 바꿀까요? 지급 기록과 남은 수량이 초기화돼요.</span><button class="btn danger" type="button" data-c="import-yes">바꾸기</button><button class="btn" type="button" data-c="import-no">취소</button>`
+    : "";
 }
 function commit(){ conConfirm = null; render(); save(); }
-$("consoleView").addEventListener("click", e => {
+function moveTier(id, d){
+  const arr = C().tiers, i = arr.findIndex(t=>t.id===id), k = i + d;
+  if (i<0 || k<0 || k>=arr.length) return;
+  [arr[i], arr[k]] = [arr[k], arr[i]];
+}
+async function offerFile(filename, text, mime){
+  try {
+    const dl = window.claude?.use ? await window.claude.use("downloads") : null;
+    if (dl){ await dl.save({filename, data:text}); return true; }
+  } catch(e){ if (e?.code === "declined") return false; }
+  try {
+    const url = URL.createObjectURL(new Blob([text], {type:mime}));
+    const a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 2000); return true;
+  } catch(e){ return false; }
+}
+const stamp = () => { const d = new Date(); return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`; };
+$("consoleView").addEventListener("click", async e => {
   const st = e.target.closest("[data-step]");
-  if (st){ const id = st.dataset.id, d = +st.dataset.step;
-    state.stock[id] = Math.max(0, Math.min(state.qty[id], state.stock[id] + d)); return commit(); }
+  if (st){ const id = st.dataset.id, it = itemOf(id), d = +st.dataset.step; if (!it) return;
+    state.stock[id] = Math.max(0, Math.min(it.qty, (state.stock[id]||0) + d)); return commit(); }
   const b = e.target.closest("[data-c]"); if (!b) return;
-  const c = b.dataset.c, i = +b.dataset.i;
-  if (c==="del"){ conConfirm = `del:${i}`; return renderConsole(); }
-  if (c==="clear"||c==="reset"){ conConfirm = c; return renderConsole(); }
-  if (c==="no"){ conConfirm = null; return renderConsole(); }
-  if (c==="del-yes"){ const e0 = state.log[i]; if (e0){ state.log.splice(i,1); state.stock[e0.item] = Math.min(state.qty[e0.item], state.stock[e0.item]+1); } }
-  if (c==="clear-yes") state.log = [];
-  if (c==="reset-yes") state = fresh(state.qty);
+  const c = b.dataset.c, i = +b.dataset.i, id = b.dataset.id, cfg = C();
+  switch (c){
+    case "del": conConfirm = `del:${i}`; return renderConsole();
+    case "clear": case "reset": conConfirm = c; return renderConsole();
+    case "tier-del": conConfirm = `tdel:${id}`; return renderConsole();
+    case "item-del": conConfirm = `idel:${id}`; return renderConsole();
+    case "no": conConfirm = null; return renderConsole();
+    case "del-yes": { const e0 = state.log[i]; if (e0){ state.log.splice(i,1); const it = itemOf(e0.item); if (it) state.stock[it.id] = Math.min(it.qty, state.stock[it.id]+1); } break; }
+    case "clear-yes": state.log = []; break;
+    case "reset-yes": state = {config:cfg, stock:Object.fromEntries(cfg.items.map(x=>[x.id,x.qty])), log:[]}; break;
+    case "tier-up": moveTier(id,-1); break;
+    case "tier-down": moveTier(id,1); break;
+    case "tier-add": {
+      if (cfg.tiers.length >= 8) return;
+      const n = cfg.tiers.length + 1;
+      cfg.tiers.push({id:uid("t"), name:`${n}등`, name2: cfg.lang2==="ja" ? `${n}等` : cfg.lang2==="zh" ? `${n}等奖` : cfg.lang2==="en" ? `Prize ${n}` : "", color:TIER_COLORS[(n-1)%TIER_COLORS.length]});
+      break; }
+    case "tier-del-yes": if (!itemsIn(id).length && cfg.tiers.length > 1) cfg.tiers = cfg.tiers.filter(t=>t.id!==id); break;
+    case "item-add": {
+      if (cfg.items.length >= 80) return;
+      const nid = uid("i"); cfg.items.push({id:nid, tier:cfg.tiers[cfg.tiers.length-1].id, name:"새 경품", name2:"", qty:1}); state.stock[nid] = 1;
+      break; }
+    case "item-del-yes": cfg.items = cfg.items.filter(x=>x.id!==id); delete state.stock[id]; break;
+    case "export-cfg": {
+      const out = {...clone(cfg)}; delete out.pinHash;
+      const ok = await offerFile(`gacha-settings-${stamp()}.json`, JSON.stringify({type:"gacha-settings", version:2, config:out}, null, 2), "application/json");
+      $("backupMsg").textContent = ok ? "설정 파일을 내보냈어요." : "파일을 저장하지 못했어요.";
+      return; }
+    case "export-csv": {
+      const rows = [["일시","등급","경품"], ...[...state.log].reverse().map(e=>{ const d = new Date(e.at); return [isNaN(d) ? "" : `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`, tierOf(e.tier)?.name || e.tierName, e.name]; })];
+      const csv = "﻿" + rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\r\n");
+      const ok = await offerFile(`gacha-log-${stamp()}.csv`, csv, "text/csv");
+      $("backupMsg").textContent = ok ? `지급 기록 ${state.log.length}건을 내보냈어요.` : "파일을 저장하지 못했어요.";
+      return; }
+    case "import": $("importFile").value = ""; $("importFile").click(); return;
+    case "import-no": importDraft = null; return renderConsole();
+    case "import-yes": {
+      if (!importDraft) return;
+      const nc = importDraft; nc.pinHash = cfg.pinHash; importDraft = null;
+      state = {config:nc, stock:Object.fromEntries(nc.items.map(x=>[x.id,x.qty])), log:[]};
+      $("backupMsg").textContent = "설정을 불러왔어요.";
+      break; }
+    case "pin-save": {
+      const v = $("newPin").value.trim();
+      if (!/^\d{4}$/.test(v)){ $("pinSaveMsg").textContent = "숫자 4자리를 입력하세요."; return; }
+      const h = await sha256(v); if (!h){ $("pinSaveMsg").textContent = "이 브라우저에서는 PIN을 바꿀 수 없어요."; return; }
+      cfg.pinHash = h; $("newPin").value = ""; $("pinSaveMsg").textContent = "PIN을 바꿨어요. 다음부터 새 PIN으로 들어오세요.";
+      break; }
+    default: return;
+  }
   commit();
 });
 $("consoleView").addEventListener("change", e => {
-  const inp = e.target.closest("#stockBody input"); if (!inp) return;
-  const id = inp.dataset.id, v = Math.max(0, Math.min(999, Math.round(+inp.value || 0)));
-  if (inp.dataset.k==="qty"){
-    const used = state.qty[id] - state.stock[id];          // keep what has already gone out
-    state.qty[id] = v; state.stock[id] = Math.max(0, Math.min(v, v - used));
-  } else state.stock[id] = Math.min(state.qty[id], v);
-  inp.blur(); commit();
+  const el = e.target;
+  if (el.id === "importFile"){
+    const f = el.files && el.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try { const obj = JSON.parse(r.result); importDraft = normalizeConfig(obj.config || obj); $("backupMsg").textContent = ""; }
+      catch(err){ importDraft = null; $("backupMsg").textContent = "설정 파일을 읽지 못했어요. 이 페이지에서 내보낸 .json 파일인지 확인하세요."; }
+      renderConsole();
+    };
+    r.readAsText(f); return;
+  }
+  const cfg = C();
+  if (el.matches("#stockBody input")){
+    const it = itemOf(el.dataset.id); if (!it) return;
+    const v = int(el.value,0,999,0);
+    if (el.dataset.k==="qty"){ const used = it.qty - (state.stock[it.id]||0); it.qty = v; state.stock[it.id] = Math.max(0, Math.min(v, v - used)); }
+    else state.stock[it.id] = Math.min(it.qty, v);
+  } else if (el.dataset.f==="cfg"){
+    const k = el.dataset.key;
+    if (k==="lang2"){ if (LANGS[el.value]) cfg.lang2 = el.value; }
+    else if (["title","title2","org","org2"].includes(k)) cfg[k] = str(el.value,60);
+  } else if (el.dataset.f==="tier"){
+    const t = tierOf(el.dataset.id); if (!t) return;
+    if (el.dataset.key==="color"){ if (/^#[0-9a-fA-F]{6}$/.test(el.value)) t.color = el.value; }
+    else if (el.dataset.key==="name") t.name = str(el.value,20) || t.name;
+    else if (el.dataset.key==="name2") t.name2 = str(el.value,20);
+  } else if (el.dataset.f==="item"){
+    const it = itemOf(el.dataset.id); if (!it) return;
+    if (el.dataset.key==="name") it.name = str(el.value,40) || it.name;
+    else if (el.dataset.key==="name2") it.name2 = str(el.value,40);
+    else if (el.dataset.key==="tier" && tierOf(el.value)) it.tier = el.value;
+  } else return;
+  el.blur(); commit();
 });
-$("consoleView").addEventListener("keydown", e => { if (e.key==="Enter" && e.target.matches("#stockBody input")) e.target.blur(); });
-/* PIN gate: keeps students out of the console (client-side only; the PIN is stored as a hash) */
-const PIN_HASH = "11d1ff4edd53407199c92b00cbc3abe8c9c5d5bed4414ad07b55c896b0e7a713";
+$("consoleView").addEventListener("keydown", e => { if (e.key==="Enter" && e.target.matches("#conBody input[type=number], #conBody input[type=text]")) e.target.blur(); });
+
+/* ================= PIN gate (client-side; the PIN is stored as a hash) ================= */
 let unlocked = false, pinBuf = "";
-try { unlocked = sessionStorage.getItem("kyq-admin") === "1"; } catch(e){}
+try { unlocked = sessionStorage.getItem("gacha-admin") === "1"; } catch(e){}
 async function sha256(t){
   if (!crypto?.subtle) return null;
   const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t));
@@ -780,9 +1057,9 @@ async function pinKey(k){
   pinBuf += k; drawPin(); $("pinMsg").textContent = "";
   if (pinBuf.length===4){
     const h = await sha256(pinBuf);
-    const ok = !!h && h===PIN_HASH;
-    if (ok){ unlocked = true; try { sessionStorage.setItem("kyq-admin","1"); } catch(e){} pinBuf = ""; drawPin(); route(); }
-    else { $("pinMsg").textContent = "PIN이 맞지 않아요. 다시 입력하세요."; const g = $("gate"); g.classList.remove("shake"); void g.offsetWidth; g.classList.add("shake");
+    if (h && h===C().pinHash){ unlocked = true; try { sessionStorage.setItem("gacha-admin","1"); } catch(e){} pinBuf = ""; drawPin(); route(); }
+    else { $("pinMsg").textContent = h ? "PIN이 맞지 않아요. 다시 입력하세요." : "이 브라우저에서는 PIN을 확인할 수 없어요.";
+      const g = $("gate"); g.classList.remove("shake"); void g.offsetWidth; g.classList.add("shake");
       setTimeout(()=>{ pinBuf = ""; drawPin(); }, 300); }
   }
 }
@@ -796,17 +1073,17 @@ function route(){
   if (adm && phase==="reveal") closeReveal();
   $("mainView").hidden = adm; $("consoleView").hidden = !adm;
   $("gate").hidden = unlocked; $("conBody").hidden = !unlocked;
-  if (adm){ pinBuf = ""; drawPin(); $("pinMsg").textContent = ""; if (unlocked) renderConsole(); } else fitMachine();
+  if (adm){ pinBuf = ""; drawPin(); $("pinMsg").textContent = ""; if (unlocked) renderConsole(); } else { render(); fitMachine(); }
   scrollTo(0,0);
 }
 addEventListener("hashchange", route);
-$("lockBtn").addEventListener("click", () => { unlocked = false; try { sessionStorage.removeItem("kyq-admin"); } catch(e){} route(); });
+$("lockBtn").addEventListener("click", () => { unlocked = false; try { sessionStorage.removeItem("gacha-admin"); } catch(e){} route(); });
 
 /* machine height = prize window height (desktop) */
 function fitMachine(){
   if (innerWidth <= 860){ cv.style.width = ""; return; }
   const h = $("prize").getBoundingClientRect().height, maxW = $("mwrap").clientWidth;
-  cv.style.width = Math.min(maxW, h*100/140) + "px";
+  if (h > 0) cv.style.width = Math.min(maxW, h*100/140) + "px";
 }
 addEventListener("resize", fitMachine);
 if (window.ResizeObserver) new ResizeObserver(fitMachine).observe($("prize"));
@@ -821,8 +1098,13 @@ setSync("이 브라우저에 저장됨");
     if (!db) return;
     const r = db.doc("draw/state");
     const snap = await r.get();
-    if (!snap.exists) await r.set(JSON.parse(JSON.stringify(state)));
-    else { state = normalize(snap.data()); if (phase==="idle") render(); }
+    if (!snap.exists) await r.set(clone(state));
+    else {
+      const remote = snap.data();
+      state = normalize(remote);
+      if (!remote.config) await r.set(clone(state));        // upgrade the shared record to the new shape once
+      if (phase==="idle") render();
+    }
     ref = r; setSync("저장됨 · 다른 기기와 동기화");
     r.onSnapshot(s => { if (s.exists){ state = normalize(s.data()); if (phase==="idle") render(); } }, () => setSync("동기화 끊김 · 새로고침하세요"));
   } catch(e){ setSync("이 브라우저에만 저장됨"); }
