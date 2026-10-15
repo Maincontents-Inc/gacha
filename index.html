@@ -93,6 +93,13 @@ button:focus-visible,summary:focus-visible,.cap:focus-visible{outline:4px dashed
 .tier{padding:8px 12px;background:color-mix(in srgb,var(--tc) 12%,var(--paper));
   box-shadow:0 -3px 0 0 var(--tc),0 3px 0 0 var(--tc),-3px 0 0 0 var(--tc),3px 0 0 0 var(--tc)}
 .tier.empty{opacity:.4}
+@media (min-width:861px){
+  .tiers.cols{display:block;columns:2;column-gap:18px;padding:3px}
+  .tiers.cols .tier{break-inside:avoid;display:block;margin:3px 0 11px}
+  .tiers.cols .items{grid-template-columns:minmax(0,1fr);gap:4px;margin-top:6px}
+  .tiers.cols .tier-head .n{display:none}
+  .tiers.cols .tier-head .p{font-size:14px}
+}
 .tier-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .chip{display:inline-flex;gap:6px;align-items:baseline;padding:3px 10px;background:var(--tc);color:var(--paper);font-size:17px;text-shadow:1px 1px 0 var(--ink);
   box-shadow:0 -2px 0 0 var(--ink),0 2px 0 0 var(--ink),-2px 0 0 0 var(--ink),2px 0 0 0 var(--ink)}
@@ -430,19 +437,24 @@ const DEFAULT_CONFIG = {
   org:"건양대 × 큐슈대", org2:"建陽大学 × 九州大学",
   lang2:"ja",
   tiers:[
+    {id:"t0",name:"특등",name2:"特等",color:"#E8432F"},
     {id:"t1",name:"1등",name2:"1等",color:"#F2A900"},{id:"t2",name:"2등",name2:"2等",color:"#FF4FA3"},
     {id:"t3",name:"3등",name2:"3等",color:"#1FB8DB"},{id:"t4",name:"4등",name2:"4等",color:"#9B6BFF"},
     {id:"t5",name:"5등",name2:"5等",color:"#22B97C"}],
   items:[
+    {id:"earbuds",tier:"t0", name:"블루투스 이어폰", name2:"ワイヤレスイヤホン",    qty:3},
+    {id:"fan",   tier:"t0", name:"손풍기",          name2:"ハンディファン",        qty:1},
     {id:"soju",  tier:"t1", name:"소주잔",          name2:"ソジュグラス",          qty:4},
     {id:"soap",  tier:"t1", name:"휴대용 비누",     name2:"携帯用せっけん",        qty:4},
     {id:"coast", tier:"t2", name:"컵받침대",        name2:"コースター",            qty:5},
     {id:"wak",   tier:"t2", name:"왁뿌볼",          name2:"ワクプボール",          qty:6},
     {id:"kakao", tier:"t2", name:"카카오 핸드크림", name2:"カカオ ハンドクリーム", qty:6},
+    {id:"cable", tier:"t2", name:"C to C 케이블",   name2:"Type-C ケーブル",       qty:5},
     {id:"janggu",tier:"t3", name:"장구 키링",       name2:"チャング キーホルダー", qty:10},
     {id:"bok",   tier:"t3", name:"복주머니",        name2:"ポクチュモニ（福袋）",  qty:10},
     {id:"mask",  tier:"t4", name:"마스크팩",        name2:"フェイスパック",        qty:20},
     {id:"hl",    tier:"t4", name:"형광펜",          name2:"蛍光ペン",              qty:8},
+    {id:"brush", tier:"t4", name:"칫솔",            name2:"歯ブラシ",              qty:5},
     {id:"squish",tier:"t5", name:"카피바라 말랑이", name2:"カピバラ スクイーズ",   qty:28},
     {id:"pen",   tier:"t5", name:"카피바라 볼펜",   name2:"カピバラ ボールペン",   qty:36},
     {id:"mark",  tier:"t5", name:"동양화 책갈피",   name2:"東洋画しおり",          qty:30}],
@@ -741,6 +753,7 @@ function render(){
       <span class="n">${tl}개${L ? " · " + j(L.count(tl)) : ""}</span>
       <span class="p">확률${L ? " · " + j(L.prob) : ""} <b>${p}%</b></span></div><ul class="items">${items}</ul></div>`;
   }).join("") || `<p class="note">경품이 없어요. 운영자 콘솔에서 경품을 추가하세요.</p>`;
+  $("tiers").classList.toggle("cols", C().tiers.filter(t=>itemsIn(t.id).length).length >= 6 || C().items.length >= 14);
   if (!$("consoleView").hidden && unlocked) renderConsole();
 }
 function toast(ko,l2){ const t=$("toast"); t.innerHTML = `<span>${esc(ko)}</span>${j(l2)}`; t.hidden=false; }
