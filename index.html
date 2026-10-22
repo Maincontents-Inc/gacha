@@ -541,7 +541,7 @@ function normalize(s){
   return {config, stock, log, rev: typeof s.rev === "string" ? s.rev : ""};
 }
 /* bump DEFAULTS_REV whenever DEFAULT_CONFIG changes, so a browser holding an older, unused copy picks up the new list */
-const DEFAULTS_REV = "2026.10.15-b";
+const DEFAULTS_REV = "2026.10.22";
 const freshState = cfg => { const config = normalizeConfig(clone(cfg || DEFAULT_CONFIG)); return {config, stock:Object.fromEntries(config.items.map(i=>[i.id,i.qty])), log:[], rev:DEFAULTS_REV}; };
 
 let state = freshState();
