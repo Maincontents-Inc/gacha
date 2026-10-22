@@ -541,7 +541,7 @@ function normalize(s){
   return {config, stock, log, rev: typeof s.rev === "string" ? s.rev : ""};
 }
 /* bump DEFAULTS_REV whenever DEFAULT_CONFIG changes, so a browser holding an older, unused copy picks up the new list */
-const DEFAULTS_REV = "2026.10.22";
+const DEFAULTS_REV = "2026.10.22-b";
 const freshState = cfg => { const config = normalizeConfig(clone(cfg || DEFAULT_CONFIG)); return {config, stock:Object.fromEntries(config.items.map(i=>[i.id,i.qty])), log:[], rev:DEFAULTS_REV}; };
 
 let state = freshState();
@@ -1148,7 +1148,7 @@ function evRemember(code, st){
     localStorage.setItem(EV_INDEX, JSON.stringify(list.slice(0,100)));
   } catch(e){}
 }
-let evRemote = null, evMsg = "";
+let evRemote = null, evMsg = "", evConfirm = null, evHidden = new Set();
 async function evFetchList(){
   if (!gsUrl || inClaude) return;
   try { const r = await fetch(gsUrl + (gsUrl.includes("?") ? "&" : "?") + "list=1&t=" + Date.now()); const j = await r.json(); if (j.ok && Array.isArray(j.events)) evRemote = j.events; } catch(e){}
@@ -1168,6 +1168,7 @@ function renderEventPanel(){
   const map = new Map();
   evIndex().forEach(x=>map.set(x.code, x));
   (evRemote || []).forEach(x=>map.set(x.code, {...map.get(x.code), ...x}));
+  evHidden.forEach(c=>map.delete(c));
   if (!map.has(cur)) map.set(cur, {code:cur, title:C().title, left:remaining(), total:totalQty()});
   const rows = [...map.values()].sort((x,y)=>String(y.at||"").localeCompare(String(x.at||"")));
   const when = v => { const d = new Date(v); return isNaN(d) ? "-" : `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`; };
@@ -1181,11 +1182,31 @@ function renderEventPanel(){
     <div class="tbl-wrap"><table class="cfg" style="min-width:560px"><thead><tr><th>행사 이름</th><th>코드</th><th>남은 / 총</th><th>마지막 저장</th><th></th></tr></thead><tbody>
       ${rows.map(x=>`<tr><td>${esc(x.title||"(이름 없음)")}${x.code===cur ? ' <span class="chip" style="--tc:var(--pink);font-size:12px;padding:1px 6px">지금 행사</span>' : ""}</td>
         <td>${esc(x.code)}</td><td class="c">${x.left ?? "-"} / ${x.total ?? "-"}</td><td class="c">${when(x.at)}</td>
-        <td class="c"><span class="row-actions" style="justify-content:flex-end">${x.code===cur ? "" : `<a class="btn" href="${esc(evLink(x.code))}#admin">열기</a>`}<button class="btn" type="button" data-c="ev-copy" data-code="${esc(x.code)}">주소 복사</button></span></td></tr>`).join("")}
-    </tbody></table></div>`;
+        <td class="c"><span class="row-actions" style="justify-content:flex-end">${evConfirm===x.code
+          ? `<span>이 행사의 경품·수량·지급 기록을 모두 지울까요?</span><button class="btn danger" type="button" data-c="ev-del-yes" data-code="${esc(x.code)}">삭제</button><button class="btn" type="button" data-c="ev-del-no">취소</button>`
+          : `${x.code===cur ? "" : `<a class="btn" href="${esc(evLink(x.code))}#admin">열기</a>`}<button class="btn" type="button" data-c="ev-copy" data-code="${esc(x.code)}">주소 복사</button>${x.code===cur || x.code==="default" ? "" : `<button class="btn" type="button" data-c="ev-del" data-code="${esc(x.code)}" aria-label="${esc(x.title||x.code)} 삭제">삭제</button>`}`}</span></td></tr>`).join("")}
+    </tbody></table></div>
+    <p class="note">지금 열려 있는 행사와 기본 행사(default)는 삭제할 수 없어요. 다른 행사를 지우려면 그 행사가 아닌 곳에서 삭제를 누르세요.</p>
+`;
 }
 $("consoleView").addEventListener("click", async e => {
   const b = e.target.closest("[data-c^='ev-']"); if (!b) return;
+  if (b.dataset.c === "ev-del"){ evConfirm = b.dataset.code; evMsg = ""; renderEventPanel(); return; }
+  if (b.dataset.c === "ev-del-no"){ evConfirm = null; renderEventPanel(); return; }
+  if (b.dataset.c === "ev-del-yes"){
+    const code = b.dataset.code; evConfirm = null;
+    if (!code || code === "default" || code === (EVENT || "default")) return;
+    const key = "gacha-state-v2:" + code;
+    try { localStorage.removeItem(key); localStorage.setItem(EV_INDEX, JSON.stringify(evIndex().filter(x=>x.code!==code))); } catch(err){}
+    idb.del(key);
+    evHidden.add(code); evMsg = "행사를 삭제했어요.";
+    if (gsUrl){
+      try { const r = await fetch(gsUrl, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body: JSON.stringify({action:"delete", event:code})}); const j = await r.json();
+        if (!j.ok) evMsg = "이 기기에서는 지웠지만 시트에서는 못 지웠어요. 시트 코드를 새 버전으로 배포해 주세요.";
+      } catch(err){ evMsg = "이 기기에서는 지웠지만 시트에 연결하지 못했어요. 인터넷 연결을 확인하세요."; }
+    }
+    renderEventPanel(); return;
+  }
   if (b.dataset.c === "ev-copy"){
     const url = evLink(b.dataset.code);
     try { await navigator.clipboard.writeText(url); b.textContent = "복사했어요"; } catch(err){ evMsg = url; renderEventPanel(); }
@@ -1215,7 +1236,7 @@ const inClaude = !!window.claude;     // inside claude.ai the shared store alrea
 let gsUrl = DEFAULT_SYNC_URL;
 try { const v = localStorage.getItem(SYNC_KEY); if (v !== null) gsUrl = v; } catch(e){}
 const gs = {status: gsUrl ? "wait" : "off", at:null, timer:null, dirty:false, busy:false, remoteAt:"", msg:""};
-const APPS_SCRIPT = "// 가챠 실시간 백업 (구글 시트 Apps Script) — 행사 여러 개를 한 시트에 저장\n// 이 코드를 전부 붙여넣고 저장한 뒤 '웹 앱'으로 배포하세요. (실행: 나 / 액세스: 모든 사용자)\n\nfunction doGet(e) {\n  var p = (e && e.parameter) || {};\n  if (p.list) return out_({ ok: true, events: list_() });\n  var r = find_(code_(p.e));\n  return out_({ ok: true, state: r ? JSON.parse(r.json) : null, at: r ? r.at : '' });\n}\n\nfunction doPost(e) {\n  var lock = LockService.getScriptLock();\n  lock.waitLock(15000);\n  try {\n    var body = JSON.parse(e.postData.contents);\n    var code = code_(body.event), s = body.state, at = new Date().toISOString();\n    var total = 0, left = 0;\n    s.config.items.forEach(function (i) { total += i.qty; left += (s.stock[i.id] || 0); });\n    upsert_(code, JSON.stringify(s), at, s.config.title || '', left, total);\n    report_(code, s);\n    return out_({ ok: true, at: at });\n  } catch (err) {\n    return out_({ ok: false, error: String(err) });\n  } finally {\n    lock.releaseLock();\n  }\n}\n\nfunction code_(c) { c = String(c || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 30); return c || 'default'; }\n\nfunction data_() {\n  var ss = SpreadsheetApp.getActiveSpreadsheet();\n  var sh = ss.getSheetByName('_data');\n  if (!sh) {\n    sh = ss.insertSheet('_data');\n    sh.getRange('A:D').setNumberFormat('@');\n    sh.getRange(1, 1, 1, 6).setValues([['code', 'json', 'at', 'title', 'left', 'total']]);\n    if (ss.getSheets().length > 1) sh.hideSheet();\n  }\n  return sh;\n}\n\nfunction find_(code) {\n  var v = data_().getDataRange().getValues();\n  for (var i = 1; i < v.length; i++) if (String(v[i][0]) === code) return { row: i + 1, json: v[i][1], at: String(v[i][2]) };\n  return null;\n}\n\nfunction upsert_(code, json, at, title, left, total) {\n  var sh = data_(), r = find_(code), row = r ? r.row : sh.getLastRow() + 1;\n  sh.getRange(row, 1, 1, 4).setNumberFormat('@');\n  sh.getRange(row, 1, 1, 6).setValues([[code, json, at, title, left, total]]);\n  overview_();\n}\n\nfunction list_() {\n  var v = data_().getDataRange().getValues(), out = [];\n  for (var i = 1; i < v.length; i++) if (v[i][0]) out.push({ code: String(v[i][0]), title: String(v[i][3]), at: String(v[i][2]), left: v[i][4], total: v[i][5] });\n  return out;\n}\n\n// '행사 목록' 탭: 모든 행사 한눈에\nfunction overview_() {\n  var ss = SpreadsheetApp.getActiveSpreadsheet();\n  var rows = [['행사 이름', '행사 코드', '남은 수량', '총 수량', '마지막 저장']];\n  list_().forEach(function (x) {\n    var d = new Date(x.at);\n    rows.push([x.title, x.code, x.left, x.total, isNaN(d) ? '' : Utilities.formatDate(d, 'Asia/Seoul', 'yyyy.MM.dd HH:mm')]);\n  });\n  var sh = ss.getSheetByName('행사 목록') || ss.insertSheet('행사 목록', 0);\n  sh.clearContents(); sh.getRange(1, 1, rows.length, 5).setValues(rows);\n}\n\n// 행사별 '현황'·'기록' 탭\nfunction report_(code, s) {\n  var ss = SpreadsheetApp.getActiveSpreadsheet();\n  var tiers = {}; s.config.tiers.forEach(function (t) { tiers[t.id] = t.name; });\n  var given = {}; s.log.forEach(function (l) { given[l.item] = (given[l.item] || 0) + 1; });\n  var rows = [['등급', '경품', '총 수량', '남은 수량', '지급 기록']];\n  s.config.tiers.forEach(function (t) {\n    s.config.items.filter(function (i) { return i.tier === t.id; }).forEach(function (i) {\n      rows.push([t.name, i.name, i.qty, s.stock[i.id] || 0, given[i.id] || 0]);\n    });\n  });\n  var a = ss.getSheetByName(code + ' 현황') || ss.insertSheet(code + ' 현황');\n  a.clearContents(); a.getRange(1, 1, rows.length, 5).setValues(rows);\n  var log = [['일시', '등급', '경품']];\n  s.log.slice().reverse().forEach(function (l) {\n    var d = new Date(l.at);\n    log.push([isNaN(d) ? '' : Utilities.formatDate(d, 'Asia/Seoul', 'yyyy.MM.dd HH:mm'), tiers[l.tier] || l.tierName || '', l.name]);\n  });\n  var b = ss.getSheetByName(code + ' 기록') || ss.insertSheet(code + ' 기록');\n  b.clearContents(); b.getRange(1, 1, log.length, 3).setValues(log);\n}\n\nfunction out_(o) {\n  return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);\n}\n";
+const APPS_SCRIPT = "// 가챠 실시간 백업 (구글 시트 Apps Script) — 행사 여러 개를 한 시트에 저장\n// 이 코드를 전부 붙여넣고 저장한 뒤 '웹 앱'으로 배포하세요. (실행: 나 / 액세스: 모든 사용자)\n\nfunction doGet(e) {\n  var p = (e && e.parameter) || {};\n  if (p.list) return out_({ ok: true, events: list_() });\n  var r = find_(code_(p.e));\n  return out_({ ok: true, state: r ? JSON.parse(r.json) : null, at: r ? r.at : '' });\n}\n\nfunction doPost(e) {\n  var lock = LockService.getScriptLock();\n  lock.waitLock(15000);\n  try {\n    var body = JSON.parse(e.postData.contents);\n    if (body.action === 'delete') return out_(delete_(code_(body.event)));\n    var code = code_(body.event), s = body.state, at = new Date().toISOString();\n    var total = 0, left = 0;\n    s.config.items.forEach(function (i) { total += i.qty; left += (s.stock[i.id] || 0); });\n    upsert_(code, JSON.stringify(s), at, s.config.title || '', left, total);\n    report_(code, s);\n    return out_({ ok: true, at: at });\n  } catch (err) {\n    return out_({ ok: false, error: String(err) });\n  } finally {\n    lock.releaseLock();\n  }\n}\n\nfunction code_(c) { c = String(c || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 30); return c || 'default'; }\n\nfunction data_() {\n  var ss = SpreadsheetApp.getActiveSpreadsheet();\n  var sh = ss.getSheetByName('_data');\n  if (!sh) {\n    sh = ss.insertSheet('_data');\n    sh.getRange('A:D').setNumberFormat('@');\n    sh.getRange(1, 1, 1, 6).setValues([['code', 'json', 'at', 'title', 'left', 'total']]);\n    if (ss.getSheets().length > 1) sh.hideSheet();\n  }\n  return sh;\n}\n\nfunction find_(code) {\n  var v = data_().getDataRange().getValues();\n  for (var i = 1; i < v.length; i++) if (String(v[i][0]) === code) return { row: i + 1, json: v[i][1], at: String(v[i][2]) };\n  return null;\n}\n\nfunction upsert_(code, json, at, title, left, total) {\n  var sh = data_(), r = find_(code), row = r ? r.row : sh.getLastRow() + 1;\n  sh.getRange(row, 1, 1, 4).setNumberFormat('@');\n  sh.getRange(row, 1, 1, 6).setValues([[code, json, at, title, left, total]]);\n  overview_();\n}\n\n// 행사 삭제: 원본 행 + '<코드> 현황/기록' 탭 삭제 (기본 행사 default는 지우지 않음)\nfunction delete_(code) {\n  if (code === 'default') return { ok: false, error: 'default event cannot be deleted' };\n  var ss = SpreadsheetApp.getActiveSpreadsheet(), r = find_(code);\n  if (r) data_().deleteRow(r.row);\n  [' 현황', ' 기록'].forEach(function (n) { var sh = ss.getSheetByName(code + n); if (sh) ss.deleteSheet(sh); });\n  overview_();\n  return { ok: true };\n}\n\nfunction list_() {\n  var v = data_().getDataRange().getValues(), out = [];\n  for (var i = 1; i < v.length; i++) if (v[i][0]) out.push({ code: String(v[i][0]), title: String(v[i][3]), at: String(v[i][2]), left: v[i][4], total: v[i][5] });\n  return out;\n}\n\n// '행사 목록' 탭: 모든 행사 한눈에\nfunction overview_() {\n  var ss = SpreadsheetApp.getActiveSpreadsheet();\n  var rows = [['행사 이름', '행사 코드', '남은 수량', '총 수량', '마지막 저장']];\n  list_().forEach(function (x) {\n    var d = new Date(x.at);\n    rows.push([x.title, x.code, x.left, x.total, isNaN(d) ? '' : Utilities.formatDate(d, 'Asia/Seoul', 'yyyy.MM.dd HH:mm')]);\n  });\n  var sh = ss.getSheetByName('행사 목록') || ss.insertSheet('행사 목록', 0);\n  sh.clearContents(); sh.getRange(1, 1, rows.length, 5).setValues(rows);\n}\n\n// 행사별 '현황'·'기록' 탭\nfunction report_(code, s) {\n  var ss = SpreadsheetApp.getActiveSpreadsheet();\n  var tiers = {}; s.config.tiers.forEach(function (t) { tiers[t.id] = t.name; });\n  var given = {}; s.log.forEach(function (l) { given[l.item] = (given[l.item] || 0) + 1; });\n  var rows = [['등급', '경품', '총 수량', '남은 수량', '지급 기록']];\n  s.config.tiers.forEach(function (t) {\n    s.config.items.filter(function (i) { return i.tier === t.id; }).forEach(function (i) {\n      rows.push([t.name, i.name, i.qty, s.stock[i.id] || 0, given[i.id] || 0]);\n    });\n  });\n  var a = ss.getSheetByName(code + ' 현황') || ss.insertSheet(code + ' 현황');\n  a.clearContents(); a.getRange(1, 1, rows.length, 5).setValues(rows);\n  var log = [['일시', '등급', '경품']];\n  s.log.slice().reverse().forEach(function (l) {\n    var d = new Date(l.at);\n    log.push([isNaN(d) ? '' : Utilities.formatDate(d, 'Asia/Seoul', 'yyyy.MM.dd HH:mm'), tiers[l.tier] || l.tierName || '', l.name]);\n  });\n  var b = ss.getSheetByName(code + ' 기록') || ss.insertSheet(code + ' 기록');\n  b.clearContents(); b.getRange(1, 1, log.length, 3).setValues(log);\n}\n\nfunction out_(o) {\n  return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);\n}\n";
 function gsQueue(){ if (!gsUrl || inClaude) return; gs.dirty = true; clearTimeout(gs.timer); gs.timer = setTimeout(gsPush, 400); }
 async function gsPush(){
   if (!gsUrl || inClaude) return;
