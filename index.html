@@ -83,6 +83,8 @@ button:focus-visible,summary:focus-visible,.cap:focus-visible{outline:4px dashed
 .segs i{height:16px;background:var(--lilac-l)}
 .segs i.on{background:var(--lilac)}
 .loading .lb{font-family:var(--pixel);font-size:10px}
+.saved-line{font-family:"Noto Sans KR",system-ui,sans-serif;font-size:13px;color:var(--muted);text-align:center}
+.saved-line b{color:var(--pink)}
 .toast{padding:10px 18px;text-align:center;display:grid;gap:2px;max-width:100%;font-size:18px}
 
 /* side */
@@ -296,6 +298,7 @@ table.cfg{width:100%;border-collapse:collapse;font-size:15px;min-width:520px}
         <div class="win-body"><div class="segs" id="segs"></div></div>
       </div>
       <div class="toast pxf" id="toast" hidden aria-live="polite"></div>
+      <div class="saved-line" id="savedLine" hidden></div>
     </section>
 
     <aside class="side">
@@ -331,10 +334,14 @@ table.cfg{width:100%;border-collapse:collapse;font-size:15px;min-width:520px}
   </div>
   <div class="console" id="conBody" hidden>
     <div class="con-top">
-      <h1>관리 콘솔</h1>
+      <h1>관리 콘솔 <span id="evTag" class="note" style="font-weight:400"></span></h1>
       <span class="confirm"><button class="btn" type="button" id="lockBtn">잠그기</button><a class="btn" href="#">◀ 가챠 화면으로</a></span>
     </div>
     <div class="tiles" id="tiles"></div>
+    <section class="panel pxf" aria-label="행사 관리">
+        <div class="titlebar"><span class="tt">행사 관리</span><span class="wb"><i>_</i><i>□</i><i>×</i></span></div>
+        <div class="win-body form" id="eventBox"></div>
+      </section>
     <div class="con-grid">
       <section class="panel pxf" aria-label="캡슐 수량">
         <div class="titlebar"><span class="tt">캡슐 수량 수정</span><span class="wb"><i>_</i><i>□</i><i>×</i></span></div>
@@ -367,6 +374,7 @@ table.cfg{width:100%;border-collapse:collapse;font-size:15px;min-width:520px}
     </div>
 
     <div class="settings">
+
       <div class="set-grid">
         <section class="panel pxf" aria-label="행사 정보">
           <div class="titlebar"><span class="tt">행사 정보</span><span class="wb"><i>_</i><i>×</i></span></div>
@@ -391,6 +399,10 @@ table.cfg{width:100%;border-collapse:collapse;font-size:15px;min-width:520px}
           </div>
         </section>
       </div>
+      <section class="panel pxf" aria-label="구글 시트 실시간 백업">
+        <div class="titlebar"><span class="tt">구글 시트 실시간 백업</span><span class="wb"><i>_</i><i>×</i></span></div>
+        <div class="win-body form" id="syncBox"></div>
+      </section>
       <section class="panel pxf" aria-label="등급 설정">
         <div class="titlebar"><span class="tt">등급 설정</span><span class="wb"><i>_</i><i>□</i><i>×</i></span></div>
         <div class="win-body form">
@@ -476,7 +488,9 @@ const LANGS = {
       pick:"请选择一个奖品", cancel:"取消", left:n=>`剩余 ${n}`, yay:(t,i)=>`${t} ${i} 恭喜！`}
 };
 const CAP_COLORS = ["#FF8FD0","#7FE3FF","#FFE27A","#C9A8FF","#8EF0C4","#FFB48A","#A8B8FF","#FF9C9C"];
-const LS_KEY = "gacha-state-v2", LS_OLD = "kyq-lucky-draw-v1";
+/* ?e=<name> runs a separate event on the same page: its own list, counts, record and sheet link */
+const EVENT = (new URLSearchParams(location.search).get("e") || "").toLowerCase().replace(/[^a-z0-9_-]/g,"").slice(0,30);
+const LS_KEY = "gacha-state-v2" + (EVENT ? ":" + EVENT : ""), LS_OLD = EVENT ? "__none__" : "kyq-lucky-draw-v1";
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const reduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -531,15 +545,28 @@ const DEFAULTS_REV = "2026.10.15-b";
 const freshState = cfg => { const config = normalizeConfig(clone(cfg || DEFAULT_CONFIG)); return {config, stock:Object.fromEntries(config.items.map(i=>[i.id,i.qty])), log:[], rev:DEFAULTS_REV}; };
 
 let state = freshState();
+let storageOK = true, restoredFrom = "";
+const wantReset = /[?&]reset(=|&|$)/.test(location.search);
 try {
-  const raw = localStorage.getItem(LS_KEY) || localStorage.getItem(LS_OLD);
-  if (/[?&]reset(=|&|$)/.test(location.search)) { localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_OLD); }
-  else if (raw){
-    const saved = normalize(JSON.parse(raw));
-    if (saved.rev !== DEFAULTS_REV && saved.log.length === 0){ state = freshState(); state.config.pinHash = saved.config.pinHash; }
-    else state = saved;
+  localStorage.setItem("gacha-probe","1"); localStorage.removeItem("gacha-probe");
+  if (wantReset){ localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_OLD); }
+  else {
+    const raw = localStorage.getItem(LS_KEY) || localStorage.getItem(LS_OLD);
+    if (raw){ state = normalize(JSON.parse(raw)); restoredFrom = "local"; }
   }
-} catch(e){}
+} catch(e){ storageOK = false; }
+/* drop ?reset from the address so a refresh or bookmark never wipes the record again */
+if (wantReset){ try { history.replaceState(null, "", location.pathname + (EVENT ? "?e=" + EVENT : "") + location.hash); } catch(e){} }
+
+/* second copy in IndexedDB: survives if another page on the same site clears localStorage */
+const idb = {
+  db: null,
+  open(){ return this.db || (this.db = new Promise((res,rej)=>{ try { const r = indexedDB.open("gacha",1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch(e){ rej(e); } })); },
+  async get(k){ const d = await this.open(); return new Promise((res,rej)=>{ const q = d.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); },
+  async set(k,v){ const d = await this.open(); return new Promise((res,rej)=>{ const t = d.transaction("kv","readwrite"); t.objectStore("kv").put(v,k); t.oncomplete = () => res(); t.onerror = () => rej(t.error); }); },
+  async del(k){ const d = await this.open(); return new Promise((res)=>{ const t = d.transaction("kv","readwrite"); t.objectStore("kv").delete(k); t.oncomplete = () => res(); t.onerror = () => res(); }); }
+};
+try { navigator.storage?.persist?.(); } catch(e){}
 
 const C = () => state.config;
 const L2 = () => C().lang2 !== "none" ? LANGS[C().lang2] : null;
@@ -713,8 +740,12 @@ function drawRevealCap(hex){
 
 /* ================= storage ================= */
 function setSync(t){ const c = $("conSync"); if (c) c.textContent = t; }
+let lastSaved = null;
 function save(){
-  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e){}
+  const json = JSON.stringify(state);
+  try { localStorage.setItem(LS_KEY, json); } catch(e){}
+  idb.set(LS_KEY, json).catch(()=>{});
+  lastSaved = new Date(); showSaved(); gsQueue(); if (typeof evRemember === "function") evRemember(EVENT || "default", state);
   if (!ref){ setSync("이 브라우저에만 저장됨"); return; }
   const snap = clone(state);
   setSync("저장 중…");
@@ -866,7 +897,7 @@ function renderConsole(){
     ["남은 캡슐", `${left}`, `총 ${tq}개 중`, "pink"],
     ["지급 기록", `${state.log.length}`, "가챠로 나간 경품", ""],
     [`상위 등급 남음`, `${topLeft}`, `${top.map(t=>t.name).join("·")} · 확률 ${left ? (topLeft/left*100).toFixed(1) : "0.0"}%`, ""],
-    ["저장 상태", ref ? "SYNC" : "LOCAL", ref ? "다른 기기와 동기화 중" : "이 브라우저에만 저장", ""]
+    ["저장 상태", ref ? "SYNC" : (gsUrl && !inClaude) ? (gs.status==="fail" ? "SHEET ✕" : "SHEET") : "LOCAL", ref ? "다른 기기와 동기화 중" : (gsUrl && !inClaude) ? (gs.status==="fail" ? "구글 시트 연결 실패 · 자동 재시도" : "구글 시트에 실시간 백업 중") : "이 브라우저에만 저장", ""]
   ].map(([l,v,sub,cl])=>`<div class="tile pxf"><span class="l">${esc(l)}</span><span class="v ${cl}">${esc(v)}</span><span class="s">${esc(sub)}</span></div>`).join("");
 
   if (!editingNow()){
@@ -1099,11 +1130,162 @@ function route(){
   if (adm && phase==="reveal") closeReveal();
   $("mainView").hidden = adm; $("consoleView").hidden = !adm;
   $("gate").hidden = unlocked; $("conBody").hidden = !unlocked;
-  if (adm){ pinBuf = ""; drawPin(); $("pinMsg").textContent = ""; if (unlocked) renderConsole(); } else { render(); fitMachine(); }
+  if (adm){ pinBuf = ""; drawPin(); $("pinMsg").textContent = ""; if (unlocked){ renderConsole(); renderSyncPanel(); renderEventPanel(); evFetchList(); } } else { render(); fitMachine(); }
   scrollTo(0,0);
 }
 addEventListener("hashchange", route);
 $("lockBtn").addEventListener("click", () => { unlocked = false; try { sessionStorage.removeItem("gacha-admin"); } catch(e){} route(); });
+
+/* ================= events (each event = its own list, counts and record) ================= */
+const EV_INDEX = "gacha-events";
+const evLink = code => location.origin + location.pathname + (code && code !== "default" ? "?e=" + code : "");
+function evIndex(){ try { return JSON.parse(localStorage.getItem(EV_INDEX) || "[]"); } catch(e){ return []; } }
+function evRemember(code, st){
+  try {
+    const list = evIndex().filter(x=>x.code!==code);
+    const total = st.config.items.reduce((a,i)=>a+i.qty,0), left = st.config.items.reduce((a,i)=>a+(st.stock[i.id]||0),0);
+    list.unshift({code, title: st.config.title, at: new Date().toISOString(), left, total});
+    localStorage.setItem(EV_INDEX, JSON.stringify(list.slice(0,100)));
+  } catch(e){}
+}
+let evRemote = null, evMsg = "";
+async function evFetchList(){
+  if (!gsUrl || inClaude) return;
+  try { const r = await fetch(gsUrl + (gsUrl.includes("?") ? "&" : "?") + "list=1&t=" + Date.now()); const j = await r.json(); if (j.ok && Array.isArray(j.events)) evRemote = j.events; } catch(e){}
+  renderEventPanel();
+}
+function blankConfig(title){
+  const c = normalizeConfig(clone(DEFAULT_CONFIG));
+  c.title = title; c.title2 = ""; c.org = ""; c.org2 = ""; c.items = []; c.pinHash = C().pinHash;
+  c.tiers = c.tiers.filter(t=>t.id!=="t0");
+  return c;
+}
+function renderEventPanel(){
+  const box = $("eventBox"); if (!box || $("consoleView").hidden) return;
+  const a = document.activeElement; if (a && (a.id==="evName" || a.id==="evMode")) return;
+  if (inClaude){ box.innerHTML = `<p class="note">새 행사 만들기는 GitHub 페이지(maincontents-inc.github.io/gacha)에서 할 수 있어요. 이 Claude 링크는 행사 하나만 써요.</p>`; return; }
+  const cur = EVENT || "default";
+  const map = new Map();
+  evIndex().forEach(x=>map.set(x.code, x));
+  (evRemote || []).forEach(x=>map.set(x.code, {...map.get(x.code), ...x}));
+  if (!map.has(cur)) map.set(cur, {code:cur, title:C().title, left:remaining(), total:totalQty()});
+  const rows = [...map.values()].sort((x,y)=>String(y.at||"").localeCompare(String(x.at||"")));
+  const when = v => { const d = new Date(v); return isNaN(d) ? "-" : `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`; };
+  box.innerHTML = `
+    <p class="note">행사마다 경품 목록·남은 수량·지급 기록이 따로 저장돼요. 새 행사를 만들면 그 행사 전용 주소가 생겨요.${gsUrl ? " 구글 시트에 연결돼 있어서 다른 기기에서도 행사 목록이 보여요." : " 구글 시트를 연결하면 다른 기기에서도 행사 목록과 수량이 이어져요."}</p>
+    <div class="pair">
+      <div class="field"><label for="evName">새 행사 이름</label><input type="text" id="evName" maxlength="60" placeholder="예: 세종 멘토링 수료식 경품 뽑기"></div>
+      <div class="field"><label for="evMode">시작 방법</label><select id="evMode"><option value="blank">빈 경품 목록으로 시작</option><option value="copy">지금 행사 설정 복사 (경품·등급·언어)</option></select></div>
+    </div>
+    <div class="row-actions"><button class="btn danger" type="button" data-c="ev-new">새 행사 만들기</button><span class="ok" aria-live="polite">${esc(evMsg)}</span></div>
+    <div class="tbl-wrap"><table class="cfg" style="min-width:560px"><thead><tr><th>행사 이름</th><th>코드</th><th>남은 / 총</th><th>마지막 저장</th><th></th></tr></thead><tbody>
+      ${rows.map(x=>`<tr><td>${esc(x.title||"(이름 없음)")}${x.code===cur ? ' <span class="chip" style="--tc:var(--pink);font-size:12px;padding:1px 6px">지금 행사</span>' : ""}</td>
+        <td>${esc(x.code)}</td><td class="c">${x.left ?? "-"} / ${x.total ?? "-"}</td><td class="c">${when(x.at)}</td>
+        <td class="c"><span class="row-actions" style="justify-content:flex-end">${x.code===cur ? "" : `<a class="btn" href="${esc(evLink(x.code))}#admin">열기</a>`}<button class="btn" type="button" data-c="ev-copy" data-code="${esc(x.code)}">주소 복사</button></span></td></tr>`).join("")}
+    </tbody></table></div>`;
+}
+$("consoleView").addEventListener("click", async e => {
+  const b = e.target.closest("[data-c^='ev-']"); if (!b) return;
+  if (b.dataset.c === "ev-copy"){
+    const url = evLink(b.dataset.code);
+    try { await navigator.clipboard.writeText(url); b.textContent = "복사했어요"; } catch(err){ evMsg = url; renderEventPanel(); }
+    return;
+  }
+  if (b.dataset.c === "ev-new"){
+    const title = ($("evName").value || "").trim();
+    if (!title){ evMsg = "행사 이름을 입력하세요."; renderEventPanel(); return; }
+    const d = new Date(), code = `${String(d.getFullYear()).slice(2)}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}-${Math.random().toString(36).slice(2,5)}`;
+    let cfg;
+    if ($("evMode").value === "copy"){ cfg = normalizeConfig(clone(C())); cfg.title = title; }
+    else cfg = blankConfig(title);
+    const st = {config:cfg, stock:Object.fromEntries(cfg.items.map(i=>[i.id,i.qty])), log:[], rev:DEFAULTS_REV};
+    const key = "gacha-state-v2:" + code, json = JSON.stringify(st);
+    try { localStorage.setItem(key, json); } catch(err){}
+    idb.set(key, json).catch(()=>{});
+    evRemember(code, st);
+    if (gsUrl){ try { await fetch(gsUrl, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body: JSON.stringify({event:code, state:st})}); } catch(err){} }
+    location.href = evLink(code) + "#admin";
+  }
+});
+
+/* ================= Google Sheets live backup (for the GitHub version) ================= */
+const DEFAULT_SYNC_URL = EVENT ? "" : "";          // put the Apps Script web-app URL here to connect every device automatically
+const SYNC_KEY = "gacha-sync-url";      // one sheet link for every event
+const inClaude = !!window.claude;     // inside claude.ai the shared store already syncs, and outside requests are blocked
+let gsUrl = DEFAULT_SYNC_URL;
+try { const v = localStorage.getItem(SYNC_KEY); if (v !== null) gsUrl = v; } catch(e){}
+const gs = {status: gsUrl ? "wait" : "off", at:null, timer:null, dirty:false, busy:false, remoteAt:"", msg:""};
+const APPS_SCRIPT = "// 가챠 실시간 백업 (구글 시트 Apps Script) — 행사 여러 개를 한 시트에 저장\n// 이 코드를 전부 붙여넣고 저장한 뒤 '웹 앱'으로 배포하세요. (실행: 나 / 액세스: 모든 사용자)\n\nfunction doGet(e) {\n  var p = (e && e.parameter) || {};\n  if (p.list) return out_({ ok: true, events: list_() });\n  var r = find_(code_(p.e));\n  return out_({ ok: true, state: r ? JSON.parse(r.json) : null, at: r ? r.at : '' });\n}\n\nfunction doPost(e) {\n  var lock = LockService.getScriptLock();\n  lock.waitLock(15000);\n  try {\n    var body = JSON.parse(e.postData.contents);\n    var code = code_(body.event), s = body.state, at = new Date().toISOString();\n    var total = 0, left = 0;\n    s.config.items.forEach(function (i) { total += i.qty; left += (s.stock[i.id] || 0); });\n    upsert_(code, JSON.stringify(s), at, s.config.title || '', left, total);\n    report_(code, s);\n    return out_({ ok: true, at: at });\n  } catch (err) {\n    return out_({ ok: false, error: String(err) });\n  } finally {\n    lock.releaseLock();\n  }\n}\n\nfunction code_(c) { c = String(c || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 30); return c || 'default'; }\n\nfunction data_() {\n  var ss = SpreadsheetApp.getActiveSpreadsheet();\n  var sh = ss.getSheetByName('_data');\n  if (!sh) {\n    sh = ss.insertSheet('_data');\n    sh.getRange('A:D').setNumberFormat('@');\n    sh.getRange(1, 1, 1, 6).setValues([['code', 'json', 'at', 'title', 'left', 'total']]);\n    if (ss.getSheets().length > 1) sh.hideSheet();\n  }\n  return sh;\n}\n\nfunction find_(code) {\n  var v = data_().getDataRange().getValues();\n  for (var i = 1; i < v.length; i++) if (String(v[i][0]) === code) return { row: i + 1, json: v[i][1], at: String(v[i][2]) };\n  return null;\n}\n\nfunction upsert_(code, json, at, title, left, total) {\n  var sh = data_(), r = find_(code), row = r ? r.row : sh.getLastRow() + 1;\n  sh.getRange(row, 1, 1, 4).setNumberFormat('@');\n  sh.getRange(row, 1, 1, 6).setValues([[code, json, at, title, left, total]]);\n  overview_();\n}\n\nfunction list_() {\n  var v = data_().getDataRange().getValues(), out = [];\n  for (var i = 1; i < v.length; i++) if (v[i][0]) out.push({ code: String(v[i][0]), title: String(v[i][3]), at: String(v[i][2]), left: v[i][4], total: v[i][5] });\n  return out;\n}\n\n// '행사 목록' 탭: 모든 행사 한눈에\nfunction overview_() {\n  var ss = SpreadsheetApp.getActiveSpreadsheet();\n  var rows = [['행사 이름', '행사 코드', '남은 수량', '총 수량', '마지막 저장']];\n  list_().forEach(function (x) {\n    var d = new Date(x.at);\n    rows.push([x.title, x.code, x.left, x.total, isNaN(d) ? '' : Utilities.formatDate(d, 'Asia/Seoul', 'yyyy.MM.dd HH:mm')]);\n  });\n  var sh = ss.getSheetByName('행사 목록') || ss.insertSheet('행사 목록', 0);\n  sh.clearContents(); sh.getRange(1, 1, rows.length, 5).setValues(rows);\n}\n\n// 행사별 '현황'·'기록' 탭\nfunction report_(code, s) {\n  var ss = SpreadsheetApp.getActiveSpreadsheet();\n  var tiers = {}; s.config.tiers.forEach(function (t) { tiers[t.id] = t.name; });\n  var given = {}; s.log.forEach(function (l) { given[l.item] = (given[l.item] || 0) + 1; });\n  var rows = [['등급', '경품', '총 수량', '남은 수량', '지급 기록']];\n  s.config.tiers.forEach(function (t) {\n    s.config.items.filter(function (i) { return i.tier === t.id; }).forEach(function (i) {\n      rows.push([t.name, i.name, i.qty, s.stock[i.id] || 0, given[i.id] || 0]);\n    });\n  });\n  var a = ss.getSheetByName(code + ' 현황') || ss.insertSheet(code + ' 현황');\n  a.clearContents(); a.getRange(1, 1, rows.length, 5).setValues(rows);\n  var log = [['일시', '등급', '경품']];\n  s.log.slice().reverse().forEach(function (l) {\n    var d = new Date(l.at);\n    log.push([isNaN(d) ? '' : Utilities.formatDate(d, 'Asia/Seoul', 'yyyy.MM.dd HH:mm'), tiers[l.tier] || l.tierName || '', l.name]);\n  });\n  var b = ss.getSheetByName(code + ' 기록') || ss.insertSheet(code + ' 기록');\n  b.clearContents(); b.getRange(1, 1, log.length, 3).setValues(log);\n}\n\nfunction out_(o) {\n  return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);\n}\n";
+function gsQueue(){ if (!gsUrl || inClaude) return; gs.dirty = true; clearTimeout(gs.timer); gs.timer = setTimeout(gsPush, 400); }
+async function gsPush(){
+  if (!gsUrl || inClaude) return;
+  if (gs.busy){ clearTimeout(gs.timer); gs.timer = setTimeout(gsPush, 800); return; }
+  gs.busy = true; gs.dirty = false;
+  try {
+    const r = await fetch(gsUrl, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body: JSON.stringify({event: EVENT || "default", state})});
+    const j = await r.json(); if (!j.ok) throw new Error(j.error || "save failed");
+    gs.status = "ok"; gs.at = new Date(); gs.remoteAt = j.at || gs.remoteAt; gs.msg = "";
+  } catch(e){ gs.status = "fail"; gs.msg = String(e.message || e); gs.dirty = true; clearTimeout(gs.timer); gs.timer = setTimeout(gsPush, 10000); }
+  gs.busy = false; showSaved(); renderSyncPanel();
+}
+async function gsPull(first){
+  if (!gsUrl || inClaude || gs.dirty || gs.busy || phase!=="idle" || editingNow()) return;
+  try {
+    const r = await fetch(gsUrl + (gsUrl.includes("?") ? "&" : "?") + "e=" + encodeURIComponent(EVENT || "default") + "&t=" + Date.now());
+    const j = await r.json(); if (!j.ok) throw new Error(j.error || "read failed");
+    if (j.state && j.at && j.at !== gs.remoteAt){
+      if (gs.dirty || phase!=="idle") return;
+      gs.remoteAt = j.at; state = normalize(j.state);
+      const json = JSON.stringify(state);
+      try { localStorage.setItem(LS_KEY, json); } catch(e){}
+      idb.set(LS_KEY, json).catch(()=>{});
+      render();
+    } else if (!j.state && first){ gsQueue(); }            // empty sheet: send what this device has
+    gs.status = "ok"; gs.at = gs.at || new Date(); gs.msg = "";
+  } catch(e){ gs.status = "fail"; gs.msg = String(e.message || e); }
+  showSaved(); renderSyncPanel();
+}
+function renderSyncPanel(){
+  const box = $("syncBox"); if (!box || $("consoleView").hidden) return;
+  const a = document.activeElement; if (a && a.id === "gsUrl") return;
+  if (inClaude){
+    box.innerHTML = `<p class="note">이 Claude 링크는 이미 뽑을 때마다 공용 기록에 바로 저장돼요. 구글 시트 백업은 GitHub 페이지에서 쓰는 기능이에요.</p>`;
+    return;
+  }
+  const st = !gsUrl ? "연결 안 됨" : gs.status==="ok" ? `연결됨 · 마지막 백업 ${gs.at ? gs.at.toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"}) : "-"}` : gs.status==="fail" ? `연결 실패 · ${esc(gs.msg)}` : "확인 중…";
+  box.innerHTML = `
+    <p class="note">연결하면 뽑을 때마다 남은 수량과 지급 기록이 구글 시트에 바로 저장되고, 다른 기기에서 열어도 같은 수량으로 이어져요. 행사가 여러 개여도 시트 하나에 모두 저장되고, 시트의 '행사 목록'과 '(행사코드) 현황·기록' 탭에서 바로 확인할 수 있어요.</p>
+    <div class="field"><label for="gsUrl">Apps Script 웹 앱 주소</label>
+      <input type="text" id="gsUrl" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(gsUrl)}" autocomplete="off"></div>
+    <div class="row-actions">
+      <button class="btn danger" type="button" data-c="gs-save">연결하기</button>
+      <button class="btn" type="button" data-c="gs-test" ${gsUrl?"":"disabled"}>지금 백업</button>
+      <button class="btn" type="button" data-c="gs-off" ${gsUrl?"":"disabled"}>연결 끊기</button>
+      <button class="btn" type="button" data-c="gs-copy">시트용 코드 복사</button>
+    </div>
+    <div class="${gs.status==="fail" ? "pin-msg" : "ok"}" aria-live="polite">상태: ${st}</div>
+    <textarea id="gsCode" readonly hidden style="width:100%;height:120px;font-family:monospace;font-size:12px"></textarea>`;
+}
+setInterval(()=>gsPull(false), 15000);
+document.addEventListener("visibilitychange", ()=>{ if (!document.hidden) gsPull(false); });
+$("consoleView").addEventListener("click", async e => {
+  const b = e.target.closest("[data-c^='gs-']"); if (!b) return;
+  const c = b.dataset.c;
+  if (c==="gs-save"){
+    const v = ($("gsUrl").value || "").trim();
+    if (!/^https:\/\/script\.google(usercontent)?\.com\//.test(v)){ gs.status="fail"; gs.msg="주소는 https://script.google.com/ 으로 시작해야 해요"; renderSyncPanel(); return; }
+    gsUrl = v; try { localStorage.setItem(SYNC_KEY, v); } catch(e){}
+    gs.status = "wait"; gs.remoteAt = ""; renderSyncPanel(); await gsPull(true);
+  } else if (c==="gs-test"){ gsQueue(); }
+  else if (c==="gs-off"){ gsUrl = ""; try { localStorage.setItem(SYNC_KEY, ""); } catch(e){} gs.status = "off"; renderSyncPanel(); showSaved(); }
+  else if (c==="gs-copy"){
+    let ok = false;
+    try { await navigator.clipboard.writeText(APPS_SCRIPT); ok = true; } catch(err){}
+    const ta = $("gsCode");
+    if (!ok){ ta.value = APPS_SCRIPT; ta.hidden = false; ta.focus(); ta.select(); }
+    b.textContent = ok ? "복사했어요" : "아래 코드를 전체 선택해 복사하세요";
+  }
+});
 
 /* machine height = prize window height (desktop) */
 function fitMachine(){
@@ -1115,9 +1297,31 @@ addEventListener("resize", fitMachine);
 if (window.ResizeObserver) new ResizeObserver(fitMachine).observe($("prize"));
 document.fonts?.ready.then(fitMachine);
 
-$("verTag").textContent = DEFAULTS_REV; $("verTag2").textContent = "v" + DEFAULTS_REV;
+$("verTag").textContent = DEFAULTS_REV; $("verTag2").textContent = "v" + DEFAULTS_REV + (EVENT ? " · 행사 코드 " + EVENT : "");
+$("evTag").textContent = EVENT ? `· 행사 코드 ${EVENT}` : "· 기본 행사";
 render(); route();
 setSync("이 브라우저에 저장됨");
+function showSaved(){
+  const el = $("savedLine"); if (!el) return;
+  if (!storageOK){ el.innerHTML = "<b>이 브라우저는 기록을 저장할 수 없어요.</b> 시크릿(비공개) 창이면 일반 창으로 여세요."; el.hidden = false; return; }
+  const hm = d => `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  let t = lastSaved ? `마지막 저장 ${hm(lastSaved)} · 남은 ${remaining()}개` : `저장된 기록 불러옴 · 남은 ${remaining()}개`;
+  if (gsUrl && !inClaude){
+    t += gs.status==="ok" ? ` · 구글 시트 백업 완료${gs.at ? " " + hm(gs.at) : ""}` : gs.status==="fail" ? " · 구글 시트 백업 실패 (인터넷 확인, 자동 재시도)" : " · 구글 시트 연결 중…";
+  }
+  el.textContent = t;
+  el.hidden = false;
+}
+(async () => {
+  if (wantReset){ idb.del(LS_KEY); showSaved(); gsPull(true); return; }
+  if (restoredFrom){ idb.set(LS_KEY, JSON.stringify(state)).catch(()=>{}); showSaved(); gsPull(true); return; }
+  try {                                      // localStorage was empty: try the backup copy
+    const raw = await idb.get(LS_KEY);
+    if (raw && phase==="idle"){ state = normalize(JSON.parse(raw)); try { localStorage.setItem(LS_KEY, raw); } catch(e){} render(); }
+  } catch(e){}
+  showSaved();
+  gsPull(true);
+})();
 
 (async () => {
   try {
